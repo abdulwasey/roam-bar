@@ -145,6 +145,25 @@ export const PRESET_GROUPS: PresetGroup[] = [
     ],
   },
   {
+    label: 'Mood',
+    presets: [
+      p('headdesk', '🤕', 'Banging my head on the keyboard', 'red', 30, { subtitle: 'jjjjjjjjjjjj' }),
+      p('regret', '🫠', 'Busy regretting life choices', 'purple', 45, { subtitle: 'Should have been a farmer' }),
+      p('dont-call', '📵', "Don't call me", 'red', 60, { subtitle: 'I hate working', dnd: true }),
+      p('fine', '🔥', 'This is fine', 'orange', 30, { subtitle: 'Everything is on fire' }),
+      p('coffee-needed', '🫗', 'Running on caffeine', 'gold', 30, { subtitle: 'Cup number four' }),
+      p('monday', '🗓️', 'It is Monday', 'gray', 60, { subtitle: 'Approach with caution' }),
+      p('friday', '🎉', 'It is Friday', 'green', 60, { subtitle: 'Mentally at the beach' }),
+      p('existential', '🌌', 'Staring into the void', 'indigo', 20, { subtitle: 'The void stares back' }),
+      p('nap', '😴', 'Powering down', 'gray', 20, { subtitle: 'Not asleep, resting my eyes' }),
+      p('crying', '😭', 'Crying in TypeScript', 'blue', 30, { subtitle: 'Type instantiation is excessively deep' }),
+      p('screaming', '😱', 'Internal screaming', 'red', 15, { subtitle: 'External calm' }),
+      p('zen', '🧘', 'Practicing patience', 'teal', 30, { subtitle: 'CI is on attempt 4' }),
+      p('lucky', '🍀', 'Feeling lucky', 'lime', 30, { subtitle: 'Pushing without running tests' }),
+      p('sarcasm', '🙃', 'Everything is great', 'yellow', 30, { subtitle: 'Definitely not sarcasm' }),
+    ],
+  },
+  {
     label: 'Chaos',
     presets: [
       p('rabbit-hole', '🐇', 'Down a rabbit hole', 'purple', 45, { subtitle: 'Send help' }),

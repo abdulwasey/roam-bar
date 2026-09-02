@@ -11,7 +11,7 @@ interface Props {
   filter: string;
   active: Activity | undefined;
   onPick: (preset: Preset) => void;
-  onEdit: (preset: Preset) => void;
+  onEdit: (preset: Preset, group: string) => void;
   onRemove: (preset: Preset) => void;
 }
 
@@ -61,7 +61,7 @@ const PresetGrid: React.FC<Props> = ({ groups, busy, filter, active, onPick, onE
                       </ActionIcon>
                     </Menu.Target>
                     <Menu.Dropdown>
-                      <Menu.Item leftSection={<IconPencil size={14} />} onClick={() => onEdit(p)}>
+                      <Menu.Item leftSection={<IconPencil size={14} />} onClick={() => onEdit(p, group.label)}>
                         Edit
                       </Menu.Item>
                       <Menu.Item leftSection={<IconTrash size={14} />} color="red" onClick={() => onRemove(p)}>

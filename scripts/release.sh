@@ -13,6 +13,7 @@ BUNDLE="$MACOS/$APP.app"
 OUT="src-tauri/target/release/bundle/dmg"
 DMG="$OUT/Roam Bar_${VERSION}_aarch64.dmg"
 REPO="abdulwasey/roam-bar"
+ASSET_TAR="Roam.Bar_${VERSION}_aarch64.app.tar.gz"
 
 [ -f "$KEY" ] || { echo "Signing key not found at $KEY (generate: npx tauri signer generate -w $KEY)" >&2; exit 1; }
 
@@ -40,9 +41,10 @@ rm -f "$DMG"
 hdiutil create -quiet -volname "$APP" -srcfolder "$stage" -ov -format UDZO "$DMG"
 echo "✓ $DMG ($(du -h "$DMG" | cut -f1))"
 
-ASSET_TAR="Roam.Bar_${VERSION}_aarch64.app.tar.gz"
-cp "$TARBALL" "$stage/$ASSET_TAR"
-cp "$SIG" "$stage/$ASSET_TAR.sig"
+assets="$(mktemp -d)"
+trap 'rm -rf "$stage" "$assets"' EXIT
+cp "$TARBALL" "$assets/$ASSET_TAR"
+cp "$SIG" "$assets/$ASSET_TAR.sig"
 jq -n \
   --arg version "$VERSION" \
   --arg notes "Roam Bar $VERSION" \
@@ -50,26 +52,14 @@ jq -n \
   --arg sig "$(cat "$SIG")" \
   --arg url "https://github.com/$REPO/releases/download/v$VERSION/$ASSET_TAR" \
   '{version: $version, notes: $notes, pub_date: $date, platforms: {"darwin-aarch64": {signature: $sig, url: $url}}}' \
-  > "$stage/latest.json"
-{
-  "version": "$VERSION",
-  "notes": "Roam Bar $VERSION",
-  "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-  "platforms": {
-    "darwin-aarch64": {
-      "signature": "$(cat "$SIG")",
-      "url": "https://github.com/$REPO/releases/download/v$VERSION/$ASSET_TAR"
-    }
-  }
-}
-JSON
+  > "$assets/latest.json"
 
 if gh release view "v$VERSION" >/dev/null 2>&1; then
   echo "▶ Release v$VERSION exists, uploading assets…"
-  gh release upload "v$VERSION" "$DMG" "$stage/$ASSET_TAR" "$stage/$ASSET_TAR.sig" "$stage/latest.json" --clobber
+  gh release upload "v$VERSION" "$DMG" "$assets/$ASSET_TAR" "$assets/$ASSET_TAR.sig" "$assets/latest.json" --clobber
 else
   echo "▶ Creating release v$VERSION…"
-  gh release create "v$VERSION" "$DMG" "$stage/$ASSET_TAR" "$stage/$ASSET_TAR.sig" "$stage/latest.json" \
+  gh release create "v$VERSION" "$DMG" "$assets/$ASSET_TAR" "$assets/$ASSET_TAR.sig" "$assets/latest.json" \
     --title "$APP $VERSION" \
     --notes "Install: \`curl -fsSL https://raw.githubusercontent.com/$REPO/main/scripts/install-from-release.sh | bash\`. Existing installs update themselves."
 fi

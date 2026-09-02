@@ -9,6 +9,7 @@ export interface Preset {
   minutes: number;
   dnd: boolean;
   keepAlive: boolean;
+  group?: string;
 }
 
 export interface PresetGroup {

@@ -6,7 +6,7 @@ import { listen } from '@tauri-apps/api/event';
 import { clearActivity, getActivities, getConfigStatus, hideWindow, quitApp, setActivity, setPinned } from './lib/api';
 import type { Activity, ConfigStatus, SetActivityInput } from './lib/types';
 import type { Preset } from './lib/presets';
-import { buildGroups, loadStore, loadStoreFromDisk, rememberCustom, removePreset, saveStore, upsertPreset, type PresetStore } from './lib/presetStore';
+import { buildGroups, CUSTOM_GROUP, defaultGroupOf, loadStore, loadStoreFromDisk, rememberCustom, removePreset, saveStore, upsertPreset, type PresetStore } from './lib/presetStore';
 import { checkForUpdate, installUpdate, type UpdateInfo } from './lib/updater';
 import UpdateBanner from './components/UpdateBanner';
 import { errorText } from './lib/utils';
@@ -37,6 +37,7 @@ const App: React.FC = () => {
   const [installing, setInstalling] = useState(false);
 
   const groups = useMemo(() => buildGroups(store), [store]);
+  const groupOptions = useMemo(() => groups.map((g) => g.label).filter((l) => l !== CUSTOM_GROUP), [groups]);
 
   const updateStore = (next: PresetStore) => {
     setStore(next);
@@ -138,15 +139,20 @@ const App: React.FC = () => {
     keepAlive: p.keepAlive,
   });
 
-  const valuesToPreset = (v: CustomValues): Omit<Preset, 'id'> => ({
-    emoji: v.emoji,
-    title: v.title,
-    subtitle: v.subtitle || undefined,
-    color: v.color,
-    minutes: v.minutes ?? 60,
-    dnd: v.dnd,
-    keepAlive: v.minutes === null,
-  });
+  const valuesToPreset = (v: CustomValues, id?: string): Omit<Preset, 'id'> => {
+    const home = id ? defaultGroupOf(id) : undefined;
+    const group = v.group && v.group !== CUSTOM_GROUP && v.group !== home ? v.group : undefined;
+    return {
+      emoji: v.emoji,
+      title: v.title,
+      subtitle: v.subtitle || undefined,
+      color: v.color,
+      minutes: v.minutes ?? 60,
+      dnd: v.dnd,
+      keepAlive: v.minutes === null,
+      group,
+    };
+  };
 
   const pickPreset = (p: Preset) => submit(toInput(p));
 
@@ -159,12 +165,20 @@ const App: React.FC = () => {
 
   const savePreset = (v: CustomValues) => {
     if (editing?.kind !== 'preset') return;
-    updateStore(upsertPreset(store, { ...valuesToPreset(v), id: editing.preset.id }));
+    updateStore(upsertPreset(store, { ...valuesToPreset(v, editing.preset.id), id: editing.preset.id }));
     leaveCustom();
   };
 
-  const editPreset = (p: Preset) => {
-    setDraft({ emoji: p.emoji, title: p.title, subtitle: p.subtitle ?? '', color: p.color, minutes: p.keepAlive ? null : p.minutes, dnd: p.dnd });
+  const editPreset = (p: Preset, group: string) => {
+    setDraft({
+      emoji: p.emoji,
+      title: p.title,
+      subtitle: p.subtitle ?? '',
+      color: p.color,
+      minutes: p.keepAlive ? null : p.minutes,
+      dnd: p.dnd,
+      group: group === CUSTOM_GROUP ? '' : group,
+    });
     setEditing({ kind: 'preset', preset: p });
     setTab('custom');
   };
@@ -344,6 +358,7 @@ const App: React.FC = () => {
                 key={formKey}
                 busy={busy}
                 mode={formMode}
+                groupOptions={groupOptions}
                 draft={draft ?? { title: filter.trim() }}
                 onSet={setFromCustom}
                 onSavePreset={savePreset}

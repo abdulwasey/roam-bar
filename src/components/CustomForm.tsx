@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Group, Stack, Switch, Text, TextInput } from '@mantine/core';
+import { Autocomplete, Button, Group, Stack, Switch, Text, TextInput } from '@mantine/core';
 import { IconCheck, IconDeviceFloppy } from '@tabler/icons-react';
 import { ROAM_COLORS, type RoamColor } from '../lib/types';
 import EmojiPicker from './EmojiPicker';
@@ -11,6 +11,7 @@ export interface CustomDraft {
   color?: RoamColor;
   minutes?: number | null;
   dnd?: boolean;
+  group?: string;
 }
 
 export interface CustomValues {
@@ -20,12 +21,14 @@ export interface CustomValues {
   color: RoamColor;
   minutes: number | null;
   dnd: boolean;
+  group: string;
 }
 
 interface Props {
   busy: boolean;
   draft?: CustomDraft;
   mode: 'status' | 'preset' | 'update';
+  groupOptions: string[];
   onSet: (values: CustomValues) => void;
   onSavePreset?: (values: CustomValues) => void;
   onCancel?: () => void;
@@ -39,13 +42,14 @@ const DURATIONS: { label: string; minutes: number | null }[] = [
   { label: 'Until cleared', minutes: null },
 ];
 
-const CustomForm: React.FC<Props> = ({ busy, draft = {}, mode, onSet, onSavePreset, onCancel }) => {
+const CustomForm: React.FC<Props> = ({ busy, draft = {}, mode, groupOptions, onSet, onSavePreset, onCancel }) => {
   const [emoji, setEmoji] = useState(draft.emoji ?? '💬');
   const [title, setTitle] = useState(draft.title ?? '');
   const [subtitle, setSubtitle] = useState(draft.subtitle ?? '');
   const [color, setColor] = useState<RoamColor>(draft.color ?? 'blue');
   const [minutes, setMinutes] = useState<number | null>(draft.minutes === undefined ? 30 : draft.minutes);
   const [dnd, setDnd] = useState(draft.dnd ?? false);
+  const [group, setGroup] = useState(draft.group ?? '');
 
   const valid = title.trim().length > 0;
   const values = (): CustomValues => ({
@@ -55,6 +59,7 @@ const CustomForm: React.FC<Props> = ({ busy, draft = {}, mode, onSet, onSavePres
     color,
     minutes,
     dnd,
+    group: group.trim(),
   });
 
   const primary = () => {
@@ -127,6 +132,19 @@ const CustomForm: React.FC<Props> = ({ busy, draft = {}, mode, onSet, onSavePres
           ))}
         </div>
       </div>
+
+      {mode !== 'update' && (
+        <Autocomplete
+          label="Category"
+          description="Pick an existing one or type a new name"
+          placeholder="Yours"
+          size="xs"
+          data={groupOptions}
+          value={group}
+          onChange={setGroup}
+          maxLength={40}
+        />
+      )}
 
       <Switch
         size="xs"

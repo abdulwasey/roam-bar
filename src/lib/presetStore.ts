@@ -60,14 +60,31 @@ export function isCustomId(id: string): boolean {
   return id.startsWith('custom:');
 }
 
+export function defaultGroupOf(id: string): string | undefined {
+  return PRESET_GROUPS.find((g) => g.presets.some((p) => p.id === id))?.label;
+}
+
 export function buildGroups(store: PresetStore): PresetGroup[] {
-  const groups: PresetGroup[] = [];
-  if (store.custom.length) groups.push({ label: CUSTOM_GROUP, presets: store.custom });
+  const buckets = new Map<string, Preset[]>();
+  const push = (label: string, p: Preset) => {
+    if (!buckets.has(label)) buckets.set(label, []);
+    buckets.get(label)!.push(p);
+  };
+  for (const c of store.custom) push(c.group?.trim() || CUSTOM_GROUP, c);
   for (const g of PRESET_GROUPS) {
-    const presets = g.presets.filter((p) => !store.hidden.includes(p.id)).map((p) => store.overrides[p.id] ?? p);
-    if (presets.length) groups.push({ label: g.label, presets });
+    for (const p of g.presets) {
+      if (store.hidden.includes(p.id)) continue;
+      const eff = store.overrides[p.id] ?? p;
+      push(eff.group?.trim() || g.label, eff);
+    }
   }
-  return groups;
+  const order = [CUSTOM_GROUP, ...PRESET_GROUPS.map((g) => g.label)];
+  const labels = [...order.filter((l) => buckets.has(l)), ...[...buckets.keys()].filter((l) => !order.includes(l))];
+  return labels.map((label) => ({ label, presets: buckets.get(label)! }));
+}
+
+export function groupLabels(store: PresetStore): string[] {
+  return buildGroups(store).map((g) => g.label);
 }
 
 export function removePreset(store: PresetStore, id: string): PresetStore {

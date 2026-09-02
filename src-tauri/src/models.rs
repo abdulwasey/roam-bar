@@ -43,16 +43,16 @@ pub struct ActivityState {
 #[serde(rename_all = "camelCase")]
 pub struct ConfigStatus {
     pub configured: bool,
-    pub email: String,
     pub user_id: String,
     pub user_name: String,
+    pub user_email: String,
+    pub user_image: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppConfigInput {
     pub token: String,
-    pub email: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -62,4 +62,6 @@ pub struct RoamUser {
     pub name: String,
     #[serde(default)]
     pub email: String,
+    #[serde(default)]
+    pub image_url: Option<String>,
 }

@@ -1,25 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { ActionIcon, Box, Button, Group, PasswordInput, Stack, Switch, Text, TextInput } from '@mantine/core';
-import { IconArrowLeft, IconDeviceFloppy } from '@tabler/icons-react';
+import { ActionIcon, Avatar, Box, Button, Group, PasswordInput, Stack, Switch, Text } from '@mantine/core';
+import { IconArrowLeft, IconPlugConnected } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { enable, disable, isEnabled } from '@tauri-apps/plugin-autostart';
 import { getConfigStatus, saveConfig } from '../lib/api';
+import type { ConfigStatus } from '../lib/types';
 import { errorText } from '../lib/utils';
 
 const Settings: React.FC<{ onBack: () => void; onSaved: () => void }> = ({ onBack, onSaved }) => {
   const [token, setToken] = useState('');
-  const [email, setEmail] = useState('');
-  const [userName, setUserName] = useState('');
-  const [userId, setUserId] = useState('');
+  const [status, setStatus] = useState<ConfigStatus | null>(null);
   const [autostart, setAutostart] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    getConfigStatus().then((s) => {
-      setEmail(s.email);
-      setUserName(s.userName);
-      setUserId(s.userId);
-    });
+    getConfigStatus().then(setStatus).catch(() => setStatus(null));
     isEnabled().then(setAutostart).catch(() => setAutostart(false));
   }, []);
 
@@ -36,79 +31,76 @@ const Settings: React.FC<{ onBack: () => void; onSaved: () => void }> = ({ onBac
   const save = async () => {
     setSaving(true);
     try {
-      const user = await saveConfig({ token, email });
-      setUserName(user.name);
-      setUserId(user.id);
+      const user = await saveConfig({ token });
       setToken('');
       notifications.show({ color: 'green', title: 'Connected', message: `Signed in as ${user.name}` });
       onSaved();
     } catch (err) {
-      notifications.show({ color: 'red', title: 'Save failed', message: errorText(err) });
+      notifications.show({ color: 'red', title: 'Could not connect', message: errorText(err) });
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <Stack gap={10} p={12}>
-      <Group gap={8}>
-        <ActionIcon variant="subtle" color="gray" onClick={onBack}>
+    <Stack gap={12} p={12}>
+      <Group gap={6}>
+        <ActionIcon variant="subtle" color="gray" onClick={onBack} aria-label="Back">
           <IconArrowLeft size={16} />
         </ActionIcon>
-        <Text fw={700} size="sm">
+        <Text fw={600} size="sm">
           Settings
         </Text>
       </Group>
 
-      <Box className="glass" style={{ padding: 12 }}>
-        <Group justify="space-between">
-          <Box>
-            <Text className="t1" size="xs" fw={600}>
-              Launch at login
+      <Box className="glass" p={12}>
+        <Group gap={10} wrap="nowrap">
+          <Avatar src={status?.userImage || undefined} radius="xl" size={36}>
+            {status?.userName?.slice(0, 1)}
+          </Avatar>
+          <div style={{ minWidth: 0 }}>
+            <Text className="t1" size="sm" fw={600} truncate>
+              {status?.configured ? status.userName : 'Not connected'}
             </Text>
-            <Text className="t3" size="10px">
-              Start Roam Bar automatically when you log in
+            <Text className="t3" size="xs" truncate>
+              {status?.configured ? status.userEmail : 'Paste a token below to connect'}
             </Text>
-          </Box>
-          <Switch checked={autostart} onChange={(e) => toggleAutostart(e.currentTarget.checked)} />
+          </div>
         </Group>
       </Box>
 
-      <Box className="glass" style={{ padding: 12 }}>
-        <Text className="t1" size="xs" fw={600}>
-          {userName ? `Connected as ${userName}` : 'Not connected'}
-        </Text>
-        <Text className="t3" size="10px" style={{ wordBreak: 'break-all' }}>
-          {userId || 'Save a token and email to resolve your Roam user'}
-        </Text>
+      <Box className="glass" p={12}>
+        <Group justify="space-between" wrap="nowrap">
+          <div>
+            <Text className="t1" size="xs" fw={600}>
+              Launch at login
+            </Text>
+            <Text className="t3" size="xs">
+              Start Roam Bar when you sign in
+            </Text>
+          </div>
+          <Switch checked={autostart} onChange={(e) => toggleAutostart(e.currentTarget.checked)} />
+        </Group>
       </Box>
 
       <PasswordInput
         label="Roam personal access token"
         description="Roam → User Settings → Developer. Stored in the macOS Keychain."
-        placeholder="rmp-… (leave blank to keep current)"
+        placeholder={status?.configured ? 'Leave blank to keep the current token' : 'rmp-…'}
         value={token}
         onChange={(e) => setToken(e.currentTarget.value)}
         size="xs"
-      />
-      <TextInput
-        label="Roam email"
-        placeholder="you@therealbrokerage.com"
-        value={email}
-        onChange={(e) => setEmail(e.currentTarget.value)}
-        size="xs"
-        onKeyDown={(e) => e.key === 'Enter' && save()}
+        onKeyDown={(e) => e.key === 'Enter' && token.trim() && save()}
       />
 
       <Button
-        mt={4}
         size="sm"
         loading={saving}
-        disabled={!email.trim()}
-        leftSection={<IconDeviceFloppy size={15} />}
+        disabled={!token.trim()}
+        leftSection={<IconPlugConnected size={15} />}
         onClick={save}
       >
-        Save and connect
+        Connect
       </Button>
     </Stack>
   );

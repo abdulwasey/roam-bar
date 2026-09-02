@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActionIcon, Box, Button, Divider, Group, Stack, Text, Tooltip } from '@mantine/core';
-import { IconPower, IconRefresh, IconSettings } from '@tabler/icons-react';
+import { ActionIcon, Avatar, Box, Button, Group, SegmentedControl, Stack, Text, TextInput, Tooltip } from '@mantine/core';
+import { IconPower, IconSearch, IconSettings, IconX } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
-import { clearActivity, getActivities, getConfigStatus, quitApp, setActivity } from './lib/api';
+import { clearActivity, getActivities, getConfigStatus, hideWindow, quitApp, setActivity, setPinned } from './lib/api';
 import type { Activity, ConfigStatus, SetActivityInput } from './lib/types';
 import type { Preset } from './lib/presets';
 import { errorText } from './lib/utils';
@@ -15,6 +15,8 @@ const POLL_INTERVAL = 30 * 1000;
 
 const App: React.FC = () => {
   const [view, setView] = useState<'main' | 'settings'>('main');
+  const [tab, setTab] = useState<'presets' | 'custom'>('presets');
+  const [filter, setFilter] = useState('');
   const [config, setConfig] = useState<ConfigStatus | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [keepAlive, setKeepAlive] = useState(false);
@@ -35,6 +37,37 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    let pinned = false;
+    const sync = () => {
+      window.setTimeout(() => {
+        const el = document.activeElement;
+        const editing = !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
+        if (editing !== pinned) {
+          pinned = editing;
+          setPinned(editing).catch(() => undefined);
+        }
+      }, 0);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      const el = document.activeElement as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+        el.blur();
+        return;
+      }
+      hideWindow().catch(() => undefined);
+    };
+    document.addEventListener('focusin', sync);
+    document.addEventListener('focusout', sync);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('focusin', sync);
+      document.removeEventListener('focusout', sync);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, []);
+
+  useEffect(() => {
     refresh();
     const id = window.setInterval(refresh, POLL_INTERVAL);
     const onFocus = () => refresh();
@@ -50,8 +83,9 @@ const App: React.FC = () => {
     try {
       await setActivity(input);
       await refresh();
+      setTab('presets');
     } catch (err) {
-      notifications.show({ color: 'red', title: 'Could not set activity', message: errorText(err) });
+      notifications.show({ color: 'red', title: 'Could not set status', message: errorText(err) });
     } finally {
       setBusy(false);
     }
@@ -95,29 +129,29 @@ const App: React.FC = () => {
 
   return (
     <Box className="cb-shell">
-      <Box className="cb-header" style={{ padding: '9px 12px' }}>
+      <Box className="cb-header">
         <Group justify="space-between" wrap="nowrap">
-          <Box>
-            <Text fw={700} size="sm">
-              Roam Bar
-            </Text>
-            <Text className="t3" size="10px">
-              {config?.userName ? `Setting status for ${config.userName}` : 'Not connected'}
-            </Text>
-          </Box>
-          <Group gap={2} wrap="nowrap">
-            <Tooltip label="Refresh" withArrow>
-              <ActionIcon variant="subtle" color="gray" onClick={refresh}>
-                <IconRefresh size={15} />
-              </ActionIcon>
-            </Tooltip>
+          <Group gap={8} wrap="nowrap" style={{ minWidth: 0 }}>
+            <Avatar src={config?.userImage || undefined} radius="xl" size={26}>
+              {config?.userName?.slice(0, 1)}
+            </Avatar>
+            <div style={{ minWidth: 0 }}>
+              <Text size="sm" fw={600} lh={1.15} truncate>
+                {config?.userName || 'Roam Bar'}
+              </Text>
+              <Text className="t3" size="xs" lh={1.2}>
+                {config?.configured ? 'Roam status' : 'Not connected'}
+              </Text>
+            </div>
+          </Group>
+          <Group gap={0} wrap="nowrap">
             <Tooltip label="Settings" withArrow>
-              <ActionIcon variant="subtle" color="gray" onClick={() => setView('settings')}>
+              <ActionIcon variant="subtle" color="gray" onClick={() => setView('settings')} aria-label="Settings">
                 <IconSettings size={15} />
               </ActionIcon>
             </Tooltip>
-            <Tooltip label="Quit" withArrow>
-              <ActionIcon variant="subtle" color="gray" onClick={() => quitApp()}>
+            <Tooltip label="Quit Roam Bar" withArrow>
+              <ActionIcon variant="subtle" color="gray" onClick={() => quitApp()} aria-label="Quit">
                 <IconPower size={15} />
               </ActionIcon>
             </Tooltip>
@@ -125,26 +159,64 @@ const App: React.FC = () => {
         </Group>
       </Box>
 
-      <Box className="cb-scroll">
-        {config && !config.configured ? (
-          <Stack gap={8} align="center" py={24}>
-            <Text className="t2" size="xs" ta="center">
-              Connect your Roam account to start setting activities.
-            </Text>
-            <Button size="xs" onClick={() => setView('settings')}>
-              Open Settings
-            </Button>
-          </Stack>
-        ) : (
-          <Stack gap={10}>
-            <CurrentActivity activities={activities} keepAlive={keepAlive} clearing={clearing} onClear={clear} />
-            <Divider label="Presets" labelPosition="left" />
-            <PresetGrid busy={busy} onPick={pickPreset} />
-            <Divider label="Custom" labelPosition="left" />
-            <CustomForm busy={busy} onSubmit={submit} />
-          </Stack>
-        )}
-      </Box>
+      {config && !config.configured ? (
+        <Stack gap={8} align="center" py={32} px={16}>
+          <Text className="t2" size="xs" ta="center">
+            Connect your Roam account to start setting a status.
+          </Text>
+          <Button size="xs" onClick={() => setView('settings')}>
+            Open Settings
+          </Button>
+        </Stack>
+      ) : (
+        <>
+          <Box className="sticky-top">
+            <CurrentActivity config={config} activities={activities} keepAlive={keepAlive} clearing={clearing} onClear={clear} />
+            <Group gap={6} wrap="nowrap" mt={10}>
+              <SegmentedControl
+                size="xs"
+                value={tab}
+                onChange={(v) => setTab(v as 'presets' | 'custom')}
+                data={[
+                  { label: 'Presets', value: 'presets' },
+                  { label: 'Custom', value: 'custom' },
+                ]}
+              />
+              {tab === 'presets' && (
+                <TextInput
+                  size="xs"
+                  aria-label="Filter presets"
+                  placeholder="Filter"
+                  value={filter}
+                  onChange={(e) => setFilter(e.currentTarget.value)}
+                  leftSection={<IconSearch size={13} />}
+                  rightSection={
+                    filter ? (
+                      <ActionIcon size="xs" variant="subtle" color="gray" onClick={() => setFilter('')} aria-label="Clear filter">
+                        <IconX size={12} />
+                      </ActionIcon>
+                    ) : null
+                  }
+                  style={{ flex: 1 }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape' && filter) {
+                      e.stopPropagation();
+                      setFilter('');
+                    }
+                  }}
+                />
+              )}
+            </Group>
+          </Box>
+          <Box className="cb-scroll">
+            {tab === 'presets' ? (
+              <PresetGrid busy={busy} filter={filter} active={activities[0]} onPick={pickPreset} />
+            ) : (
+              <CustomForm busy={busy} initialTitle={filter.trim()} onSubmit={submit} />
+            )}
+          </Box>
+        </>
+      )}
     </Box>
   );
 };

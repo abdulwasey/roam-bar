@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Button, Group, Stack, Text, Badge } from '@mantine/core';
+import { ActionIcon, Badge, Group, Stack, Text, Tooltip } from '@mantine/core';
 import { IconX } from '@tabler/icons-react';
-import type { Activity } from '../lib/types';
+import { ROAM_STATUS_ID, type Activity, type ConfigStatus } from '../lib/types';
 import { formatRemaining } from '../lib/utils';
+import SeatPreview from './SeatPreview';
 
 interface Props {
+  config: ConfigStatus | null;
   activities: Activity[];
   keepAlive: boolean;
   clearing: string | null;
   onClear: (externalId: string) => void;
 }
 
-const CurrentActivity: React.FC<Props> = ({ activities, keepAlive, clearing, onClear }) => {
+const CurrentActivity: React.FC<Props> = ({ config, activities, keepAlive, clearing, onClear }) => {
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -19,59 +21,61 @@ const CurrentActivity: React.FC<Props> = ({ activities, keepAlive, clearing, onC
     return () => window.clearInterval(id);
   }, []);
 
-  if (activities.length === 0) {
-    return (
-      <Box className="glass" style={{ padding: 12 }}>
-        <Text className="t2" size="xs">
-          No activity set. Your seat shows as available.
-        </Text>
-      </Box>
-    );
-  }
+  const primary = activities[0];
 
   return (
-    <Stack gap={6}>
-      {activities.map((a) => (
-        <Box key={a.externalId} className={`glass glow-${a.display.color ?? 'gray'}`} style={{ padding: 12 }}>
-          <Group justify="space-between" wrap="nowrap">
-            <Group gap={10} wrap="nowrap" style={{ minWidth: 0 }}>
-              <Text style={{ fontSize: 24, lineHeight: 1 }}>{a.display.emoji}</Text>
-              <Box style={{ minWidth: 0 }}>
-                <Group gap={6} wrap="nowrap">
-                  <Text className="t1" size="sm" fw={600} truncate>
-                    {a.display.title}
+    <div className="status-card">
+      <SeatPreview name={config?.userName ?? ''} image={config?.userImage} display={primary?.display} />
+      <Stack gap={6} style={{ flex: 1, minWidth: 0 }} justify="center">
+        {!primary ? (
+          <>
+            <Text className="t1" size="sm" fw={600}>
+              Available
+            </Text>
+            <Text className="t3" size="xs">
+              Pick a preset to show what you're up to.
+            </Text>
+          </>
+        ) : (
+          activities.map((a) => {
+            const ours = a.externalId === ROAM_STATUS_ID;
+            return (
+              <Group key={a.externalId} gap={6} wrap="nowrap" align="flex-start">
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Group gap={6} wrap="nowrap">
+                    <Text className="t1" size="sm" fw={600} truncate>
+                      {a.display.title}
+                    </Text>
+                    {a.dnd && (
+                      <Badge size="xs" variant="light" color="red" radius="sm">
+                        DND
+                      </Badge>
+                    )}
+                  </Group>
+                  <Text className="t3" size="xs" truncate>
+                    {a.display.subtitle ? `${a.display.subtitle} · ` : ''}
+                    {ours && keepAlive ? 'Until cleared' : formatRemaining(a.expiresAt, now)}
+                    {!ours ? ' · from another app' : ''}
                   </Text>
-                  {a.dnd && (
-                    <Badge size="xs" color="red" variant="light">
-                      DND
-                    </Badge>
-                  )}
-                  {keepAlive && a.externalId === 'roambar:status' && (
-                    <Badge size="xs" color="indigo" variant="light">
-                      kept alive
-                    </Badge>
-                  )}
-                </Group>
-                <Text className="t3" size="10px" truncate>
-                  {a.display.subtitle ? `${a.display.subtitle} · ` : ''}
-                  {keepAlive && a.externalId === 'roambar:status' ? 'until cleared' : formatRemaining(a.expiresAt, now)}
-                </Text>
-              </Box>
-            </Group>
-            <Button
-              size="compact-xs"
-              variant="light"
-              color="gray"
-              leftSection={<IconX size={12} />}
-              loading={clearing === a.externalId}
-              onClick={() => onClear(a.externalId)}
-            >
-              Clear
-            </Button>
-          </Group>
-        </Box>
-      ))}
-    </Stack>
+                </div>
+                <Tooltip label="Clear" withArrow>
+                  <ActionIcon
+                    variant="subtle"
+                    color="gray"
+                    size="sm"
+                    aria-label={`Clear ${a.display.title}`}
+                    loading={clearing === a.externalId}
+                    onClick={() => onClear(a.externalId)}
+                  >
+                    <IconX size={14} />
+                  </ActionIcon>
+                </Tooltip>
+              </Group>
+            );
+          })
+        )}
+      </Stack>
+    </div>
   );
 };
 

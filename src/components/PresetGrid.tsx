@@ -1,44 +1,62 @@
 import React from 'react';
-import { SimpleGrid, Stack, Text } from '@mantine/core';
+import { Text } from '@mantine/core';
 import { PRESET_GROUPS, type Preset } from '../lib/presets';
+import type { Activity } from '../lib/types';
+import { isPresetActive, matchesFilter } from '../lib/utils';
 
 interface Props {
   busy: boolean;
+  filter: string;
+  active: Activity | undefined;
   onPick: (preset: Preset) => void;
 }
 
-const PresetGrid: React.FC<Props> = ({ busy, onPick }) => (
-  <Stack gap={10}>
-    {PRESET_GROUPS.map((group) => (
-      <Stack key={group.label} gap={4}>
-        <Text className="t3" size="10px" fw={600} tt="uppercase" style={{ letterSpacing: 0.4 }}>
-          {group.label}
-        </Text>
-        <SimpleGrid cols={2} spacing={6}>
-          {group.presets.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              className={`preset-btn glow-${p.color}`}
-              disabled={busy}
-              onClick={() => onPick(p)}
-            >
-              <span className="preset-emoji">{p.emoji}</span>
-              <span style={{ minWidth: 0 }}>
-                <span className="preset-title" style={{ display: 'block' }}>
-                  {p.title}
-                </span>
-                <span className="preset-meta">
-                  {p.keepAlive ? 'until cleared' : `${p.minutes} min`}
-                  {p.dnd ? ' · DND' : ''}
-                </span>
-              </span>
-            </button>
-          ))}
-        </SimpleGrid>
-      </Stack>
-    ))}
-  </Stack>
-);
+const PresetGrid: React.FC<Props> = ({ busy, filter, active, onPick }) => {
+  const groups = PRESET_GROUPS.map((g) => ({ ...g, presets: g.presets.filter((p) => matchesFilter(p, filter)) })).filter(
+    (g) => g.presets.length > 0,
+  );
+
+  if (groups.length === 0) {
+    return (
+      <Text className="t3" size="xs" ta="center" py={20}>
+        No preset matches “{filter.trim()}”. Use the Custom tab to set it.
+      </Text>
+    );
+  }
+
+  return (
+    <div className="preset-groups">
+      {groups.map((group) => (
+        <section key={group.label} className="preset-group">
+          <h3 className="preset-group-label">{group.label}</h3>
+          <div className="preset-grid">
+            {group.presets.map((p) => {
+              const on = isPresetActive(p, active);
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={`preset-btn ${on ? 'preset-btn-active' : ''}`}
+                  disabled={busy}
+                  aria-pressed={on}
+                  onClick={() => onPick(p)}
+                >
+                  <span className={`emoji-tile tint-${p.color}`}>{p.emoji}</span>
+                  <span className="preset-text">
+                    <span className="preset-title">{p.title}</span>
+                    <span className="preset-meta">
+                      {p.keepAlive ? 'Until cleared' : `${p.minutes} min`}
+                      {p.dnd ? ' · DND' : ''}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+};
 
 export default PresetGrid;

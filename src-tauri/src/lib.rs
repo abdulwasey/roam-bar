@@ -6,6 +6,7 @@ mod roam;
 mod secrets;
 
 use std::io::Write;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -13,6 +14,8 @@ use tauri::{
 };
 use tauri_plugin_autostart::{ManagerExt, MacosLauncher};
 use tauri_plugin_positioner::{Position, WindowExt};
+
+pub static PINNED: AtomicBool = AtomicBool::new(false);
 
 pub fn dlog(msg: &str) {
     if let Ok(mut f) = std::fs::OpenOptions::new()
@@ -42,6 +45,8 @@ pub fn run() {
             commands::get_activities,
             commands::set_activity,
             commands::clear_activity,
+            commands::set_pinned,
+            commands::hide_window,
             commands::quit_app,
         ])
         .setup(|app| {
@@ -94,7 +99,7 @@ pub fn run() {
                         ..
                     } = event
                     {
-                        show_popover(tray.app_handle());
+                        toggle_popover(tray.app_handle());
                     }
                 });
             if let Some(menu) = menu {
@@ -108,7 +113,9 @@ pub fn run() {
                 let w = window.clone();
                 window.on_window_event(move |event| {
                     if let tauri::WindowEvent::Focused(false) = event {
-                        let _ = w.hide();
+                        if !PINNED.load(Ordering::Relaxed) {
+                            let _ = w.hide();
+                        }
                     }
                 });
             }
@@ -122,6 +129,16 @@ pub fn run() {
         Ok(_) => dlog("run() exited cleanly"),
         Err(e) => dlog(&format!("run() error: {e}")),
     }
+}
+
+fn toggle_popover(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        if window.is_visible().unwrap_or(false) && window.is_focused().unwrap_or(false) {
+            let _ = window.hide();
+            return;
+        }
+    }
+    show_popover(app);
 }
 
 fn show_popover(app: &tauri::AppHandle) {

@@ -45,18 +45,21 @@ export interface ActivityState {
 
 export interface ConfigStatus {
   configured: boolean;
-  email: string;
   userId: string;
   userName: string;
+  userEmail: string;
+  userImage: string;
 }
 
 export interface AppConfig {
   token: string;
-  email: string;
 }
 
 export interface RoamUser {
   id: string;
   name: string;
   email: string;
+  imageUrl?: string;
 }
+
+export const ROAM_STATUS_ID = 'roambar:status';

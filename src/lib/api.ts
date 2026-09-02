@@ -21,6 +21,14 @@ export function clearActivity(externalId: string): Promise<void> {
   return invoke<void>('clear_activity', { externalId });
 }
 
+export function setPinned(pinned: boolean): Promise<void> {
+  return invoke<void>('set_pinned', { pinned });
+}
+
+export function hideWindow(): Promise<void> {
+  return invoke<void>('hide_window');
+}
+
 export function quitApp(): Promise<void> {
   return invoke<void>('quit_app');
 }

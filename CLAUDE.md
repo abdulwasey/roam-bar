@@ -25,22 +25,24 @@ No test suite. `npm run build` is the frontend typecheck; `cargo clippy` the Rus
 
 ### Backend (`src-tauri/src/`)
 
-- `lib.rs` — tray icon + menu, popover show/hide, vibrancy, Accessory activation
-  policy, first-run autostart, registers commands and the `Heartbeat` state.
+- `lib.rs` — tray icon + menu, popover toggle/hide-on-blur (suppressed while
+  `PINNED` is set, i.e. a text field is focused so the macOS emoji palette can
+  take focus), vibrancy, Accessory activation policy, first-run autostart,
+  registers commands and the `Heartbeat` state.
   Lifecycle log at `/tmp/roam-bar-debug.log` (`dlog`).
 - `commands.rs` — the IPC surface. Each command loads config from Keychain,
   calls `roam.rs`, and updates the tray title to the active emoji.
 - `roam.rs` — HTTP client for `api.ro.am/v1`. One activity at a time under the
-  fixed `externalId` `roambar:status`. `resolve_user` pages `user.list` by
-  `cursor` to match the saved email (the API has no whoami and no email filter).
+  fixed `externalId` `roambar:status`. `resolve_user` calls `token.info` for the
+  token owner's id/name/email, then `user.info?id=` for the avatar `imageUrl`.
   Valid `display.color` values: blue, gold, gray, green, indigo, lime, orange,
   pink, purple, red, teal, yellow.
 - `heartbeat.rs` — managed state holding one background task that re-posts the
   active activity every `ttl - 60s` while "keep alive" is on. Stopped on clear,
   on quit, or when `get_activities` sees nothing live.
-- `secrets.rs` — gitignored compile-time defaults (`ROAM_TOKEN`, `ROAM_EMAIL`); copy `secrets.rs.example` to create it. Keychain values override these.
-- `config.rs` — Keychain keys: `roam_token`, `roam_email`, `roam_user_id`,
-  `roam_user_name`. Token only overwritten when a non-empty value is saved.
+- `secrets.rs` — gitignored compile-time default (`ROAM_TOKEN`); copy `secrets.rs.example` to create it. A Keychain token overrides it.
+- `config.rs` — Keychain keys: `roam_token`, `roam_user_id`, `roam_user_name`,
+  `roam_user_email`, `roam_user_image`. Token only overwritten when non-empty.
 - `models.rs` — serde structs over IPC, `rename_all = "camelCase"`.
 
 ### Frontend (`src/`)
@@ -48,8 +50,10 @@ No test suite. `npm run build` is the frontend typecheck; `cargo clippy` the Rus
 - `lib/api.ts` — typed `invoke()` wrappers, the only bridge to Rust.
 - `lib/types.ts` — TS mirrors of `models.rs`, plus `ROAM_COLORS`.
 - `lib/presets.ts` — the one-click preset catalog, grouped by `PRESET_GROUPS`. Edit here to add presets.
-- `App.tsx` — polls `get_activities` every 30 s and on window focus.
-- `components/` — `CurrentActivity`, `PresetGrid`, `CustomForm`, `Settings`.
+- `App.tsx` — polls `get_activities` every 30 s and on window focus; pins the
+  window while an input is focused; Escape blurs, then hides.
+- `components/` — `CurrentActivity` (with `SeatPreview`, a mock of the Roam seat),
+  `PresetGrid`, `CustomForm`, `EmojiPicker`, `Settings`.
 
 ### Adding a command
 

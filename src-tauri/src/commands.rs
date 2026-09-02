@@ -2,15 +2,15 @@ use crate::config::{self, Config};
 use crate::heartbeat::Heartbeat;
 use crate::models::{Activity, ActivityState, AppConfigInput, ConfigStatus, RoamUser, SetActivityInput};
 use crate::roam;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 
 async fn load_cfg() -> Result<Config, String> {
     let cfg = config::load();
-    if !cfg.user_id.is_empty() || cfg.token.is_empty() || cfg.email.is_empty() {
+    if !cfg.user_id.is_empty() || cfg.token.is_empty() {
         return Ok(cfg);
     }
     let user = roam::resolve_user(&cfg).await?;
-    config::save_identity(&user.id, &user.name)?;
+    config::save_identity(&user)?;
     Ok(config::load())
 }
 
@@ -26,18 +26,19 @@ pub async fn get_config_status() -> Result<ConfigStatus, String> {
     let cfg = load_cfg().await?;
     Ok(ConfigStatus {
         configured: !cfg.token.is_empty() && !cfg.user_id.is_empty(),
-        email: cfg.email,
         user_id: cfg.user_id,
         user_name: cfg.user_name,
+        user_email: cfg.user_email,
+        user_image: cfg.user_image,
     })
 }
 
 #[tauri::command]
 pub async fn save_config(config: AppConfigInput) -> Result<RoamUser, String> {
-    config::save_credentials(&config.token, &config.email)?;
+    config::save_token(&config.token)?;
     let cfg = config::load();
     let user = roam::resolve_user(&cfg).await?;
-    config::save_identity(&user.id, &user.name)?;
+    config::save_identity(&user)?;
     Ok(user)
 }
 
@@ -89,6 +90,19 @@ pub async fn clear_activity(
     let remaining = roam::list_activities(&cfg).await.unwrap_or_default();
     update_tray(&app, &remaining);
     Ok(())
+}
+
+#[tauri::command]
+pub fn set_pinned(pinned: bool) {
+    crate::PINNED.store(pinned, std::sync::atomic::Ordering::Relaxed);
+}
+
+#[tauri::command]
+pub fn hide_window(app: AppHandle) {
+    crate::PINNED.store(false, std::sync::atomic::Ordering::Relaxed);
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.hide();
+    }
 }
 
 #[tauri::command]

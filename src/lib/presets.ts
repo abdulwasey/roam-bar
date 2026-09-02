@@ -91,17 +91,6 @@ export const PRESET_GROUPS: PresetGroup[] = [
       p('family', '👶', 'Family time', 'pink', 45, { dnd: true }),
     ],
   },
-  {
-    label: 'Out',
-    presets: [
-      p('ooo', '🌴', 'Out of office', 'gray', 60, { dnd: true, keepAlive: true }),
-      p('sick', '🤒', 'Out sick', 'gray', 60, { dnd: true, keepAlive: true }),
-      p('travel', '✈️', 'Traveling', 'blue', 60, { keepAlive: true }),
-      p('wfh', '🏠', 'Working from home', 'blue', 60, { keepAlive: true }),
-      p('office', '🏢', 'At the office', 'blue', 60, { keepAlive: true }),
-      p('done', '🌙', 'Done for the day', 'indigo', 60, { dnd: true, keepAlive: true }),
-    ],
-  },
 ];
 
 export const PRESETS: Preset[] = PRESET_GROUPS.flatMap((g) => g.presets);

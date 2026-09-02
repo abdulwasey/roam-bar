@@ -16,8 +16,8 @@
       {
         "label": "main",
         "title": "Roam Bar",
-        "width": 380,
-        "height": 640,
+        "width": 400,
+        "height": 620,
         "resizable": false,
         "decorations": false,
         "transparent": true,

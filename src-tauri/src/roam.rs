@@ -6,7 +6,6 @@ use serde_json::json;
 
 const BASE: &str = "https://api.ro.am/v1";
 pub const EXTERNAL_ID: &str = "roambar:status";
-const MAX_PAGES: usize = 50;
 
 #[derive(Deserialize)]
 struct ApiError {
@@ -15,10 +14,8 @@ struct ApiError {
 }
 
 #[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct UserListResponse {
-    users: Vec<RoamUser>,
-    next_cursor: Option<String>,
+struct TokenInfoResponse {
+    user: RoamUser,
 }
 
 #[derive(Deserialize)]
@@ -62,27 +59,20 @@ fn post(cfg: &Config, path: &str) -> reqwest::RequestBuilder {
 
 pub async fn resolve_user(cfg: &Config) -> Result<RoamUser, String> {
     require(cfg)?;
-    let wanted = cfg.email.trim().to_lowercase();
-    if wanted.is_empty() {
-        return Err("Email not set. Enter the email you use in Roam.".into());
-    }
-    let mut cursor: Option<String> = None;
-    for _ in 0..MAX_PAGES {
-        let mut req = get(cfg, "user.list").query(&[("limit", "200")]);
-        if let Some(c) = &cursor {
-            req = req.query(&[("cursor", c)]);
-        }
-        let resp = check(req.send().await.map_err(|e| e.to_string())?).await?;
-        let page: UserListResponse = resp.json().await.map_err(|e| e.to_string())?;
-        if let Some(u) = page.users.into_iter().find(|u| u.email.to_lowercase() == wanted) {
-            return Ok(u);
-        }
-        match page.next_cursor {
-            Some(c) if !c.is_empty() => cursor = Some(c),
-            _ => break,
+    let resp = get(cfg, "token.info").send().await.map_err(|e| e.to_string())?;
+    let info: TokenInfoResponse = check(resp).await?.json().await.map_err(|e| e.to_string())?;
+    let mut user = info.user;
+    if let Ok(resp) = get(cfg, "user.info").query(&[("id", &user.id)]).send().await {
+        if let Ok(full) = check(resp).await {
+            if let Ok(detail) = full.json::<RoamUser>().await {
+                user.image_url = detail.image_url;
+                if !detail.name.is_empty() {
+                    user.name = detail.name;
+                }
+            }
         }
     }
-    Err(format!("No Roam user found with email {wanted}"))
+    Ok(user)
 }
 
 pub async fn set_activity(

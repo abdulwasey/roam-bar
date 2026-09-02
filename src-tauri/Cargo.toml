@@ -1,0 +1,26 @@
+[package]
+name = "roam-bar"
+version = "0.1.0"
+description = "Menu bar app for setting your Roam seat activity"
+authors = ["Abdul Wasey"]
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+name = "roam_bar_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.5.6", features = [] }
+
+[dependencies]
+tauri = { version = "2.10.3", features = ["tray-icon", "macos-private-api"] }
+tauri-plugin-autostart = "2"
+tauri-plugin-positioner = { version = "2", features = ["tray-icon"] }
+window-vibrancy = "0.6"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+tokio = { version = "1", features = ["time", "sync", "macros"] }
+keyring = { version = "3", features = ["apple-native"] }
+chrono = { version = "0.4", default-features = false, features = ["clock"] }

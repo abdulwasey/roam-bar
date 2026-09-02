@@ -10,7 +10,8 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
-    "install:app": "bash scripts/install.sh"
+    "install:app": "bash scripts/install.sh",
+    "release": "bash scripts/release.sh"
   },
   "dependencies": {
     "@mantine/core": "^7.17.2",

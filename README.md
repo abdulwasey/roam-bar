@@ -50,11 +50,12 @@ npm run install:app   # release .app → /Applications/Roam Bar.app, relaunched
 ## Sharing a build
 
 ```bash
-env -u ROAM_DEV_TOKEN npm run tauri:build
-open src-tauri/target/release/bundle/dmg/
+scripts/release.sh   # bump "version" in package.json, tauri.conf.json, Cargo.toml first
 ```
 
-That produces `Roam Bar_<version>_aarch64.dmg` with no token inside. Each
+Builds the app without a token, refuses to continue if one is compiled in,
+creates the DMG with `hdiutil` (no Finder volume appears), and publishes or
+updates the GitHub release for that version. Each
 person drags the app to Applications, launches it, opens Settings and pastes
 their own Roam personal access token. Tokens only ever live in that person's
 Keychain.

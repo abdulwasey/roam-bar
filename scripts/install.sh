@@ -7,8 +7,11 @@ cd "$(dirname "$0")/.."
 APP="src-tauri/target/release/bundle/macos/Roam Bar.app"
 DEST="/Applications/Roam Bar.app"
 
+KEY="${TAURI_SIGNING_PRIVATE_KEY_PATH:-$HOME/.tauri/roam-bar.key}"
+[ -f "$KEY" ] || { echo "Signing key not found at $KEY; updater artifacts need it" >&2; exit 1; }
+
 echo "▶ Building Roam Bar (release, .app only)…"
-npm run tauri -- build --bundles app
+TAURI_SIGNING_PRIVATE_KEY="$(cat "$KEY")" TAURI_SIGNING_PRIVATE_KEY_PASSWORD="" npm run tauri -- build --bundles app
 
 echo "▶ Quitting any running copy…"
 osascript -e 'tell application "Roam Bar" to quit' >/dev/null 2>&1 || true

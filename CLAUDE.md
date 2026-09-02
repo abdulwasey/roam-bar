@@ -44,8 +44,10 @@ No test suite. `npm run build` is the frontend typecheck; `cargo clippy` the Rus
 - `heartbeat.rs` — managed state holding one background task that re-posts the
   active activity every `ttl - 60s` while "keep alive" is on. Stopped on clear,
   on quit, or when `get_activities` sees nothing live.
-- `config.rs` — Keychain keys: `roam_token`, `roam_user_id`, `roam_user_name`,
-  `roam_user_email`, `roam_user_image`. Token only overwritten when non-empty.
+- `config.rs` — only the token lives in Keychain (`roam_token`); identity
+  (id/name/email/avatar) is `<app data dir>/identity.json`, and the config is
+  cached in memory per launch. Ad-hoc-signed builds get a Keychain prompt per
+  item per new build, so keep the item count at one until Developer ID signing.
   With no Keychain token, `load()` falls back to the compile-time
   `ROAM_DEV_TOKEN` env var (`option_env!`, dev convenience only). Release builds
   for sharing must be made without it so no token ships in the binary.

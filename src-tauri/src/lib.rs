@@ -71,11 +71,15 @@ pub fn run() {
                 }
             }
 
-            if config::get("autostart_init").is_none() {
+            let marker = dirs_marker();
+            if !marker.exists() {
                 if let Err(e) = app.autolaunch().enable() {
                     dlog(&format!("setup: autostart enable error: {e}"));
                 }
-                let _ = config::set("autostart_init", "1");
+                if let Some(parent) = marker.parent() {
+                    let _ = std::fs::create_dir_all(parent);
+                }
+                let _ = std::fs::write(&marker, "1");
             }
 
             let menu = (|| -> tauri::Result<Menu<_>> {
@@ -137,6 +141,11 @@ pub fn run() {
         Ok(_) => dlog("run() exited cleanly"),
         Err(e) => dlog(&format!("run() error: {e}")),
     }
+}
+
+fn dirs_marker() -> std::path::PathBuf {
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".into());
+    std::path::PathBuf::from(home).join("Library/Application Support/com.realbrokerage.roambar/autostart_init")
 }
 
 fn toggle_popover(app: &tauri::AppHandle) {

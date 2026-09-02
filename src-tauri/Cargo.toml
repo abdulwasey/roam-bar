@@ -1,6 +1,6 @@
 [package]
 name = "roam-bar"
-version = "0.1.6"
+version = "0.1.7"
 description = "Menu bar app for setting your Roam seat activity"
 authors = ["Abdul Wasey"]
 edition = "2021"

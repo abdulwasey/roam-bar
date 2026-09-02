@@ -3,6 +3,7 @@ mod config;
 mod heartbeat;
 mod models;
 mod roam;
+mod secrets;
 
 use std::io::Write;
 use tauri::{

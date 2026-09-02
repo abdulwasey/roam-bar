@@ -1,6 +1,6 @@
 import React from 'react';
-import { SimpleGrid } from '@mantine/core';
-import { PRESETS, type Preset } from '../lib/presets';
+import { SimpleGrid, Stack, Text } from '@mantine/core';
+import { PRESET_GROUPS, type Preset } from '../lib/presets';
 
 interface Props {
   busy: boolean;
@@ -8,22 +8,37 @@ interface Props {
 }
 
 const PresetGrid: React.FC<Props> = ({ busy, onPick }) => (
-  <SimpleGrid cols={2} spacing={6}>
-    {PRESETS.map((p) => (
-      <button key={p.id} type="button" className={`preset-btn glow-${p.color}`} disabled={busy} onClick={() => onPick(p)}>
-        <span className="preset-emoji">{p.emoji}</span>
-        <span style={{ minWidth: 0 }}>
-          <span className="preset-title" style={{ display: 'block' }}>
-            {p.title}
-          </span>
-          <span className="preset-meta">
-            {p.keepAlive ? 'until cleared' : `${p.minutes} min`}
-            {p.dnd ? ' · DND' : ''}
-          </span>
-        </span>
-      </button>
+  <Stack gap={10}>
+    {PRESET_GROUPS.map((group) => (
+      <Stack key={group.label} gap={4}>
+        <Text className="t3" size="10px" fw={600} tt="uppercase" style={{ letterSpacing: 0.4 }}>
+          {group.label}
+        </Text>
+        <SimpleGrid cols={2} spacing={6}>
+          {group.presets.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className={`preset-btn glow-${p.color}`}
+              disabled={busy}
+              onClick={() => onPick(p)}
+            >
+              <span className="preset-emoji">{p.emoji}</span>
+              <span style={{ minWidth: 0 }}>
+                <span className="preset-title" style={{ display: 'block' }}>
+                  {p.title}
+                </span>
+                <span className="preset-meta">
+                  {p.keepAlive ? 'until cleared' : `${p.minutes} min`}
+                  {p.dnd ? ' · DND' : ''}
+                </span>
+              </span>
+            </button>
+          ))}
+        </SimpleGrid>
+      </Stack>
     ))}
-  </SimpleGrid>
+  </Stack>
 );
 
 export default PresetGrid;

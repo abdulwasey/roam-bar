@@ -1,8 +1,18 @@
-use crate::config;
+use crate::config::{self, Config};
 use crate::heartbeat::Heartbeat;
 use crate::models::{Activity, ActivityState, AppConfigInput, ConfigStatus, RoamUser, SetActivityInput};
 use crate::roam;
 use tauri::{AppHandle, State};
+
+async fn load_cfg() -> Result<Config, String> {
+    let cfg = config::load();
+    if !cfg.user_id.is_empty() || cfg.token.is_empty() || cfg.email.is_empty() {
+        return Ok(cfg);
+    }
+    let user = roam::resolve_user(&cfg).await?;
+    config::save_identity(&user.id, &user.name)?;
+    Ok(config::load())
+}
 
 fn update_tray(app: &AppHandle, activities: &[Activity]) {
     if let Some(tray) = app.tray_by_id("main-tray") {
@@ -12,14 +22,14 @@ fn update_tray(app: &AppHandle, activities: &[Activity]) {
 }
 
 #[tauri::command]
-pub fn get_config_status() -> ConfigStatus {
-    let cfg = config::load();
-    ConfigStatus {
+pub async fn get_config_status() -> Result<ConfigStatus, String> {
+    let cfg = load_cfg().await?;
+    Ok(ConfigStatus {
         configured: !cfg.token.is_empty() && !cfg.user_id.is_empty(),
         email: cfg.email,
         user_id: cfg.user_id,
         user_name: cfg.user_name,
-    }
+    })
 }
 
 #[tauri::command]
@@ -36,7 +46,7 @@ pub async fn get_activities(
     app: AppHandle,
     heartbeat: State<'_, Heartbeat>,
 ) -> Result<ActivityState, String> {
-    let cfg = config::load();
+    let cfg = load_cfg().await?;
     let activities = roam::list_activities(&cfg).await?;
     update_tray(&app, &activities);
     if activities.is_empty() {
@@ -54,7 +64,7 @@ pub async fn set_activity(
     heartbeat: State<'_, Heartbeat>,
     input: SetActivityInput,
 ) -> Result<Activity, String> {
-    let cfg = config::load();
+    let cfg = load_cfg().await?;
     let activity = roam::set_activity(&cfg, &input.display, input.ttl_seconds, input.dnd).await?;
     if input.keep_alive {
         heartbeat.start(input.display.clone(), input.ttl_seconds, input.dnd);

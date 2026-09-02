@@ -35,8 +35,8 @@ pub fn set(key: &str, value: &str) -> Result<(), String> {
 
 pub fn load() -> Config {
     Config {
-        token: get(TOKEN).unwrap_or_default(),
-        email: get(EMAIL).unwrap_or_default(),
+        token: get(TOKEN).unwrap_or_else(|| crate::secrets::ROAM_TOKEN.to_string()),
+        email: get(EMAIL).unwrap_or_else(|| crate::secrets::ROAM_EMAIL.to_string()),
         user_id: get(USER_ID).unwrap_or_default(),
         user_name: get(USER_NAME).unwrap_or_default(),
     }

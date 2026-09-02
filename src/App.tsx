@@ -22,10 +22,10 @@ const App: React.FC = () => {
   const [clearing, setClearing] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const status = await getConfigStatus();
-    setConfig(status);
-    if (!status.configured) return;
     try {
+      const status = await getConfigStatus();
+      setConfig(status);
+      if (!status.configured) return;
       const state = await getActivities();
       setActivities(state.activities);
       setKeepAlive(state.keepAlive);

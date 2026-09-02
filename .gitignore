@@ -25,3 +25,6 @@ yarn-error.log*
 .idea
 .vscode/*
 !.vscode/extensions.json
+
+# compile-time credential defaults — never commit
+src-tauri/src/secrets.rs

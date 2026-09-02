@@ -38,6 +38,7 @@ No test suite. `npm run build` is the frontend typecheck; `cargo clippy` the Rus
 - `heartbeat.rs` — managed state holding one background task that re-posts the
   active activity every `ttl - 60s` while "keep alive" is on. Stopped on clear,
   on quit, or when `get_activities` sees nothing live.
+- `secrets.rs` — gitignored compile-time defaults (`ROAM_TOKEN`, `ROAM_EMAIL`); copy `secrets.rs.example` to create it. Keychain values override these.
 - `config.rs` — Keychain keys: `roam_token`, `roam_email`, `roam_user_id`,
   `roam_user_name`. Token only overwritten when a non-empty value is saved.
 - `models.rs` — serde structs over IPC, `rename_all = "camelCase"`.
@@ -46,7 +47,7 @@ No test suite. `npm run build` is the frontend typecheck; `cargo clippy` the Rus
 
 - `lib/api.ts` — typed `invoke()` wrappers, the only bridge to Rust.
 - `lib/types.ts` — TS mirrors of `models.rs`, plus `ROAM_COLORS`.
-- `lib/presets.ts` — the one-click preset catalog. Edit here to add presets.
+- `lib/presets.ts` — the one-click preset catalog, grouped by `PRESET_GROUPS`. Edit here to add presets.
 - `App.tsx` — polls `get_activities` every 30 s and on window focus.
 - `components/` — `CurrentActivity`, `PresetGrid`, `CustomForm`, `Settings`.
 

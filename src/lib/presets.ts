@@ -75,22 +75,6 @@ export const PRESET_GROUPS: PresetGroup[] = [
       p('testing', '🧪', 'Testing', 'teal', 30),
     ],
   },
-  {
-    label: 'Away',
-    presets: [
-      p('lunch', '🍽️', 'Lunch', 'gray', 45, { subtitle: 'Back soon' }),
-      p('coffee', '☕', 'Coffee', 'gray', 15),
-      p('snack', '🍪', 'Snack', 'gray', 10),
-      p('break', '🌿', 'Short break', 'gray', 15),
-      p('brb', '🏃', 'BRB', 'gray', 10),
-      p('walk', '🚶', 'Walk', 'green', 30),
-      p('gym', '🏋️', 'Gym', 'green', 60),
-      p('commute', '🚗', 'Commuting', 'gray', 45),
-      p('errand', '🛒', 'Errand', 'gray', 45),
-      p('appointment', '🩺', 'Appointment', 'gray', 60, { dnd: true }),
-      p('family', '👶', 'Family time', 'pink', 45, { dnd: true }),
-    ],
-  },
 ];
 
 export const PRESETS: Preset[] = PRESET_GROUPS.flatMap((g) => g.presets);

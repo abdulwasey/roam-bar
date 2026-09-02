@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Button, Stack, Switch, Text, TextInput } from '@mantine/core';
-import { IconCheck } from '@tabler/icons-react';
-import { ROAM_COLORS, type RoamColor, type SetActivityInput } from '../lib/types';
+import { Button, Group, Stack, Switch, Text, TextInput } from '@mantine/core';
+import { IconCheck, IconDeviceFloppy } from '@tabler/icons-react';
+import { ROAM_COLORS, type RoamColor } from '../lib/types';
 import EmojiPicker from './EmojiPicker';
 
 export interface CustomDraft {
@@ -13,10 +13,22 @@ export interface CustomDraft {
   dnd?: boolean;
 }
 
+export interface CustomValues {
+  emoji: string;
+  title: string;
+  subtitle: string;
+  color: RoamColor;
+  minutes: number | null;
+  dnd: boolean;
+}
+
 interface Props {
   busy: boolean;
   draft?: CustomDraft;
-  onSubmit: (input: SetActivityInput) => void;
+  mode: 'status' | 'preset' | 'update';
+  onSet: (values: CustomValues) => void;
+  onSavePreset?: (values: CustomValues) => void;
+  onCancel?: () => void;
 }
 
 const DURATIONS: { label: string; minutes: number | null }[] = [
@@ -27,7 +39,7 @@ const DURATIONS: { label: string; minutes: number | null }[] = [
   { label: 'Until cleared', minutes: null },
 ];
 
-const CustomForm: React.FC<Props> = ({ busy, draft = {}, onSubmit }) => {
+const CustomForm: React.FC<Props> = ({ busy, draft = {}, mode, onSet, onSavePreset, onCancel }) => {
   const [emoji, setEmoji] = useState(draft.emoji ?? '💬');
   const [title, setTitle] = useState(draft.title ?? '');
   const [subtitle, setSubtitle] = useState(draft.subtitle ?? '');
@@ -36,24 +48,28 @@ const CustomForm: React.FC<Props> = ({ busy, draft = {}, onSubmit }) => {
   const [dnd, setDnd] = useState(draft.dnd ?? false);
 
   const valid = title.trim().length > 0;
+  const values = (): CustomValues => ({
+    emoji: emoji.trim() || '💬',
+    title: title.trim(),
+    subtitle: subtitle.trim(),
+    color,
+    minutes,
+    dnd,
+  });
 
-  const submit = () => {
+  const primary = () => {
     if (!valid) return;
-    onSubmit({
-      display: {
-        emoji: emoji.trim() || '💬',
-        title: title.trim(),
-        subtitle: subtitle.trim() || undefined,
-        color,
-      },
-      ttlSeconds: (minutes ?? 60) * 60,
-      dnd,
-      keepAlive: minutes === null,
-    });
+    if (mode === 'preset') onSavePreset?.(values());
+    else onSet(values());
   };
 
   return (
     <Stack gap={10}>
+      {mode === 'preset' && (
+        <Text className="t2" size="xs">
+          Editing preset. Changes apply to the button, not your current status.
+        </Text>
+      )}
       <div className="field-row">
         <EmojiPicker value={emoji} onChange={setEmoji} />
         <TextInput
@@ -64,7 +80,7 @@ const CustomForm: React.FC<Props> = ({ busy, draft = {}, onSubmit }) => {
           size="sm"
           maxLength={140}
           style={{ flex: 1 }}
-          onKeyDown={(e) => e.key === 'Enter' && submit()}
+          onKeyDown={(e) => e.key === 'Enter' && primary()}
           data-autofocus
         />
       </div>
@@ -120,9 +136,38 @@ const CustomForm: React.FC<Props> = ({ busy, draft = {}, onSubmit }) => {
         onChange={(e) => setDnd(e.currentTarget.checked)}
       />
 
-      <Button size="sm" leftSection={<IconCheck size={15} />} disabled={!valid} loading={busy} onClick={submit}>
-        {draft.title && draft.emoji ? 'Update status' : 'Set status'}
-      </Button>
+      {mode === 'preset' ? (
+        <Group gap={6} grow>
+          <Button size="sm" leftSection={<IconDeviceFloppy size={15} />} disabled={!valid} onClick={primary}>
+            Save preset
+          </Button>
+          <Button
+            size="sm"
+            variant="light"
+            leftSection={<IconCheck size={15} />}
+            disabled={!valid}
+            loading={busy}
+            onClick={() => {
+              if (!valid) return;
+              onSavePreset?.(values());
+              onSet(values());
+            }}
+          >
+            Save and set
+          </Button>
+        </Group>
+      ) : (
+        <Group gap={6} grow>
+          <Button size="sm" leftSection={<IconCheck size={15} />} disabled={!valid} loading={busy} onClick={primary}>
+            {mode === 'update' ? 'Update status' : 'Set status'}
+          </Button>
+          {onCancel && (
+            <Button size="sm" variant="subtle" color="gray" onClick={onCancel}>
+              Cancel
+            </Button>
+          )}
+        </Group>
+      )}
     </Stack>
   );
 };

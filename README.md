@@ -9,16 +9,28 @@ Built on the same skeleton as `~/Desktop/REAL/ci-bar`: Tauri v2 (Rust) backend, 
 Mantine 7 webview. The token never touches the webview; it lives in the macOS
 Keychain under the service `com.realbrokerage.roambar`.
 
-## Setup
+## Install (no build tools needed)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/abdulwasey/roam-bar/main/scripts/install-from-release.sh | bash
+```
+
+That downloads the latest DMG from [Releases](https://github.com/abdulwasey/roam-bar/releases),
+copies the app to `/Applications`, clears the Gatekeeper quarantine flag, and
+launches it. Or download the DMG from Releases yourself, drag the app to
+Applications, then right-click → Open the first time (the build is not
+notarized). Apple Silicon only.
+
+Then click the menu bar icon → gear → paste a Roam **personal access token**
+(Roam → User Settings → Developer, `user activity` scope group). It stays in
+your Keychain.
+
+## Develop
 
 ```bash
 npm install
 npm run tauri:dev
 ```
-
-Click the menu bar icon → gear → paste a Roam **personal access token**
-(Roam → User Settings → Developer, with the `user activity` scope group).
-Saving resolves your identity via `token.info` and stores it in the Keychain.
 
 For your own dev builds you can compile a token in instead of pasting it:
 

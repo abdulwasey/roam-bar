@@ -1,13 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { ActionIcon, Avatar, Box, Button, Group, PasswordInput, Stack, Switch, Text } from '@mantine/core';
-import { IconArrowLeft, IconPlugConnected } from '@tabler/icons-react';
+import { IconArrowLeft, IconPlugConnected, IconRestore } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { enable, disable, isEnabled } from '@tauri-apps/plugin-autostart';
 import { getConfigStatus, saveConfig } from '../lib/api';
 import type { ConfigStatus } from '../lib/types';
 import { errorText } from '../lib/utils';
 
-const Settings: React.FC<{ onBack: () => void; onSaved: () => void }> = ({ onBack, onSaved }) => {
+interface Props {
+  onBack: () => void;
+  onSaved: () => void;
+  hiddenCount: number;
+  onRestorePresets: () => void;
+}
+
+const Settings: React.FC<Props> = ({ onBack, onSaved, hiddenCount, onRestorePresets }) => {
   const [token, setToken] = useState('');
   const [status, setStatus] = useState<ConfigStatus | null>(null);
   const [autostart, setAutostart] = useState(true);
@@ -80,6 +87,22 @@ const Settings: React.FC<{ onBack: () => void; onSaved: () => void }> = ({ onBac
             </Text>
           </div>
           <Switch checked={autostart} onChange={(e) => toggleAutostart(e.currentTarget.checked)} />
+        </Group>
+      </Box>
+
+      <Box className="glass" p={12}>
+        <Group justify="space-between" wrap="nowrap">
+          <div>
+            <Text className="t1" size="xs" fw={600}>
+              Default presets
+            </Text>
+            <Text className="t3" size="xs">
+              {hiddenCount ? `${hiddenCount} removed or edited` : 'All defaults in place'}
+            </Text>
+          </div>
+          <Button size="compact-xs" variant="light" color="gray" leftSection={<IconRestore size={13} />} disabled={!hiddenCount} onClick={onRestorePresets}>
+            Restore
+          </Button>
         </Group>
       </Box>
 

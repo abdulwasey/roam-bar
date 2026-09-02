@@ -1,19 +1,21 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActionIcon, Avatar, Box, Button, Group, SegmentedControl, Stack, Text, TextInput, Tooltip } from '@mantine/core';
 import { IconPower, IconSearch, IconSettings, IconX } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { listen } from '@tauri-apps/api/event';
 import { clearActivity, getActivities, getConfigStatus, hideWindow, quitApp, setActivity, setPinned } from './lib/api';
 import type { Activity, ConfigStatus, SetActivityInput } from './lib/types';
-import type { CustomDraft } from './components/CustomForm';
 import type { Preset } from './lib/presets';
+import { buildGroups, loadStore, rememberCustom, removePreset, saveStore, upsertPreset, type PresetStore } from './lib/presetStore';
 import { errorText } from './lib/utils';
 import CurrentActivity from './components/CurrentActivity';
 import PresetGrid from './components/PresetGrid';
-import CustomForm from './components/CustomForm';
+import CustomForm, { type CustomDraft, type CustomValues } from './components/CustomForm';
 import Settings from './components/Settings';
 
 const POLL_INTERVAL = 30 * 1000;
+
+type Editing = { kind: 'status' } | { kind: 'preset'; preset: Preset } | null;
 
 const App: React.FC = () => {
   const [view, setView] = useState<'main' | 'settings'>('main');
@@ -23,9 +25,18 @@ const App: React.FC = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [keepAlive, setKeepAlive] = useState(false);
   const [source, setSource] = useState<string | null>(null);
-  const [draft, setDraft] = useState<CustomDraft | null>(null);
   const [busy, setBusy] = useState(false);
   const [clearing, setClearing] = useState<string | null>(null);
+  const [store, setStore] = useState<PresetStore>(() => loadStore());
+  const [draft, setDraft] = useState<CustomDraft | null>(null);
+  const [editing, setEditing] = useState<Editing>(null);
+
+  const groups = useMemo(() => buildGroups(store), [store]);
+
+  const updateStore = (next: PresetStore) => {
+    setStore(next);
+    saveStore(next);
+  };
 
   const refresh = useCallback(async () => {
     try {
@@ -46,10 +57,10 @@ const App: React.FC = () => {
     const sync = () => {
       window.setTimeout(() => {
         const el = document.activeElement;
-        const editing = !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
-        if (editing !== pinned) {
-          pinned = editing;
-          setPinned(editing).catch(() => undefined);
+        const editingField = !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
+        if (editingField !== pinned) {
+          pinned = editingField;
+          setPinned(editingField).catch(() => undefined);
         }
       }, 0);
     };
@@ -85,13 +96,18 @@ const App: React.FC = () => {
     };
   }, [refresh]);
 
+  const leaveCustom = () => {
+    setDraft(null);
+    setEditing(null);
+    setTab('presets');
+  };
+
   const submit = async (input: SetActivityInput) => {
     setBusy(true);
     try {
       await setActivity(input);
       await refresh();
-      setDraft(null);
-      setTab('presets');
+      leaveCustom();
     } catch (err) {
       notifications.show({ color: 'red', title: 'Could not set status', message: errorText(err) });
     } finally {
@@ -99,13 +115,56 @@ const App: React.FC = () => {
     }
   };
 
-  const pickPreset = (p: Preset) =>
-    submit({
-      display: { emoji: p.emoji, title: p.title, subtitle: p.subtitle, color: p.color },
-      ttlSeconds: p.minutes * 60,
-      dnd: p.dnd,
-      keepAlive: p.keepAlive,
+  const toInput = (p: Omit<Preset, 'id'>): SetActivityInput => ({
+    display: { emoji: p.emoji, title: p.title, subtitle: p.subtitle || undefined, color: p.color },
+    ttlSeconds: p.minutes * 60,
+    dnd: p.dnd,
+    keepAlive: p.keepAlive,
+  });
+
+  const valuesToPreset = (v: CustomValues): Omit<Preset, 'id'> => ({
+    emoji: v.emoji,
+    title: v.title,
+    subtitle: v.subtitle || undefined,
+    color: v.color,
+    minutes: v.minutes ?? 60,
+    dnd: v.dnd,
+    keepAlive: v.minutes === null,
+  });
+
+  const pickPreset = (p: Preset) => submit(toInput(p));
+
+  const setFromCustom = (v: CustomValues) => {
+    const preset = valuesToPreset(v);
+    const knownDefault = groups.some((g) => g.label !== 'Yours' && g.presets.some((p) => p.emoji === preset.emoji && p.title === preset.title));
+    if (!knownDefault && editing?.kind !== 'status') updateStore(rememberCustom(store, preset));
+    return submit(toInput(preset));
+  };
+
+  const savePreset = (v: CustomValues) => {
+    if (editing?.kind !== 'preset') return;
+    updateStore(upsertPreset(store, { ...valuesToPreset(v), id: editing.preset.id }));
+    leaveCustom();
+  };
+
+  const editPreset = (p: Preset) => {
+    setDraft({ emoji: p.emoji, title: p.title, subtitle: p.subtitle ?? '', color: p.color, minutes: p.keepAlive ? null : p.minutes, dnd: p.dnd });
+    setEditing({ kind: 'preset', preset: p });
+    setTab('custom');
+  };
+
+  const editStatus = (a: Activity) => {
+    setDraft({
+      emoji: a.display.emoji,
+      title: a.display.title,
+      subtitle: a.display.subtitle ?? '',
+      color: a.display.color ?? 'blue',
+      minutes: keepAlive ? null : Math.max(5, Math.min(60, Math.ceil((new Date(a.expiresAt).getTime() - Date.now()) / 60000))),
+      dnd: a.dnd,
     });
+    setEditing({ kind: 'status' });
+    setTab('custom');
+  };
 
   const clear = async (externalId: string) => {
     setClearing(externalId);
@@ -119,18 +178,6 @@ const App: React.FC = () => {
     }
   };
 
-  const edit = (a: Activity) => {
-    setDraft({
-      emoji: a.display.emoji,
-      title: a.display.title,
-      subtitle: a.display.subtitle ?? '',
-      color: a.display.color ?? 'blue',
-      minutes: keepAlive ? null : Math.max(5, Math.min(60, Math.ceil((new Date(a.expiresAt).getTime() - Date.now()) / 60000))),
-      dnd: a.dnd,
-    });
-    setTab('custom');
-  };
-
   if (view === 'settings') {
     return (
       <Box className="cb-shell">
@@ -141,11 +188,16 @@ const App: React.FC = () => {
               refresh();
               setView('main');
             }}
+            hiddenCount={store.hidden.length + Object.keys(store.overrides).length}
+            onRestorePresets={() => updateStore({ ...store, hidden: [], overrides: {} })}
           />
         </Box>
       </Box>
     );
   }
+
+  const formMode = editing?.kind === 'preset' ? 'preset' : editing?.kind === 'status' ? 'update' : 'status';
+  const formKey = editing?.kind === 'preset' ? `preset:${editing.preset.id}` : editing?.kind === 'status' ? 'status' : 'new';
 
   return (
     <Box className="cb-shell">
@@ -191,14 +243,22 @@ const App: React.FC = () => {
       ) : (
         <>
           <Box className="sticky-top">
-            <CurrentActivity config={config} activities={activities} keepAlive={keepAlive} source={source} clearing={clearing} onClear={clear} onEdit={edit} />
+            <CurrentActivity
+              config={config}
+              activities={activities}
+              keepAlive={keepAlive}
+              source={source}
+              clearing={clearing}
+              onClear={clear}
+              onEdit={editStatus}
+            />
             <Group gap={6} wrap="nowrap" mt={10}>
               <SegmentedControl
                 size="xs"
                 value={tab}
                 onChange={(v) => {
-                  setTab(v as 'presets' | 'custom');
-                  if (v === 'presets') setDraft(null);
+                  if (v === 'presets') leaveCustom();
+                  else setTab('custom');
                 }}
                 data={[
                   { label: 'Presets', value: 'presets' },
@@ -233,13 +293,24 @@ const App: React.FC = () => {
           </Box>
           <Box className="cb-scroll">
             {tab === 'presets' ? (
-              <PresetGrid busy={busy} filter={filter} active={activities[0]} onPick={pickPreset} />
+              <PresetGrid
+                groups={groups}
+                busy={busy}
+                filter={filter}
+                active={activities[0]}
+                onPick={pickPreset}
+                onEdit={editPreset}
+                onRemove={(p) => updateStore(removePreset(store, p.id))}
+              />
             ) : (
               <CustomForm
-                key={draft ? `${draft.emoji}|${draft.title}` : 'new'}
+                key={formKey}
                 busy={busy}
+                mode={formMode}
                 draft={draft ?? { title: filter.trim() }}
-                onSubmit={submit}
+                onSet={setFromCustom}
+                onSavePreset={savePreset}
+                onCancel={editing ? leaveCustom : undefined}
               />
             )}
           </Box>

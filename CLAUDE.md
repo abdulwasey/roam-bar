@@ -2,7 +2,7 @@
 
 ## What this is
 
-Roam Bar is a macOS menu bar app (no Dock icon, launches at login) that sets
+Roam Bar is a macOS menu bar app (repo: `~/Desktop/CODE/roam-bar`) (no Dock icon, launches at login) that sets
 the current user's Roam seat activity through Roam's External Activity API.
 Tauri v2: React/Mantine webview, Rust backend. **All secrets and all network
 I/O live in Rust.** The personal access token is stored in the macOS Keychain
@@ -35,7 +35,7 @@ No test suite. `npm run build` is the frontend typecheck; `cargo clippy` the Rus
   `roam.rs`, drives `Heartbeat`, records the `Source` (`app`, `cli`, `claude`),
   updates the tray title, and emits `activity-changed` so the UI refreshes.
 - `server.rs` — `tiny_http` listener on `127.0.0.1:47831` (`GET /activity`,
-  `POST /activity|/touch|/clear`). Used by `bin/roambar` and the Claude hooks.
+  `POST /activity|/touch|/clear`). Used by `bin/roambar`.
 - `roam.rs` — HTTP client for `api.ro.am/v1`. One activity at a time under the
   fixed `externalId` `roambar:status`. `resolve_user` calls `token.info` for the
   token owner's id/name/email, then `user.info?id=` for the avatar `imageUrl`.
@@ -62,7 +62,7 @@ No test suite. `npm run build` is the frontend typecheck; `cargo clippy` the Rus
   Edit prefills `CustomForm` via a `CustomDraft`), `PresetGrid`, `CustomForm`,
   `EmojiPicker` (search over `lib/emoji-data.json`, generated from Unicode's
   emoji-test.txt minus skin-tone variants), `Settings`.
-- `bin/roambar`, `hooks/` — CLI and Claude Code hook scripts over the local API.
+- `bin/roambar` — CLI over the local API.
 
 ### Adding a command
 

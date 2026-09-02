@@ -5,7 +5,7 @@ presets (deep work, on a call, lunch…) or a custom emoji + title + color +
 duration, with optional do-not-disturb and a keep-alive heartbeat that
 re-posts long sessions past Roam's 60-minute TTL cap.
 
-Built on the same skeleton as `ci-bar`: Tauri v2 (Rust) backend, React 19 +
+Built on the same skeleton as `~/Desktop/REAL/ci-bar`: Tauri v2 (Rust) backend, React 19 +
 Mantine 7 webview. The token never touches the webview; it lives in the macOS
 Keychain under the service `com.realbrokerage.roambar`.
 
@@ -75,7 +75,7 @@ While the app runs it listens on `127.0.0.1:47831`:
 | `POST /clear` | `{ifSource?}` | clear it (skipped if `ifSource` doesn't match) |
 
 `bin/roambar` wraps it. Put it on your PATH with
-`ln -s ~/Desktop/REAL/roam-bar/bin/roambar /opt/homebrew/bin/roambar`.
+`ln -s ~/Desktop/CODE/roam-bar/bin/roambar /opt/homebrew/bin/roambar`.
 
 ```bash
 roambar set 🧑‍🔧 "Fixing E2E" "bolt · RV2-76279" --color teal --minutes 30
@@ -83,17 +83,6 @@ roambar touch --minutes 15 --if-source claude
 roambar clear
 roambar status
 ```
-
-## Claude Code integration
-
-`hooks/claude-prompt.sh` (UserPromptSubmit) and `hooks/claude-session-end.sh`
-(SessionEnd) are registered in `~/.claude/settings.json`. For sessions under
-`~/Desktop/REAL` they refresh a Claude-set status on every prompt and clear it
-when the session ends. They set nothing on their own and only ever touch a
-status whose `source` is `claude`, so a preset you picked yourself is left
-alone. `~/Desktop/REAL/CLAUDE.md` tells Claude to propose a specific status once
-it understands the task and set it via `roambar set … --source claude` only
-after you say yes.
 
 ## API
 

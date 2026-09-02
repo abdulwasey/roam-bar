@@ -75,6 +75,27 @@ export const PRESET_GROUPS: PresetGroup[] = [
       p('testing', '🧪', 'Testing', 'teal', 30),
     ],
   },
+  {
+    label: 'Chaos',
+    presets: [
+      p('rabbit-hole', '🐇', 'Down a rabbit hole', 'purple', 45, { subtitle: 'Send help' }),
+      p('flaky', '🎰', 'Retrying the flaky test', 'orange', 30, { subtitle: 'It passed locally' }),
+      p('waiting-ci', '🫠', 'Waiting on CI', 'gray', 30, { subtitle: 'Agent contention' }),
+      p('rebase', '🧙', 'Rebasing', 'indigo', 30, { subtitle: 'Conflicts everywhere', dnd: true }),
+      p('spaghetti', '🍝', 'Untangling spaghetti', 'gold', 45, { subtitle: 'Legacy code' }),
+      p('rubber-duck', '🦆', 'Rubber ducking', 'yellow', 20, { subtitle: 'Talking to myself' }),
+      p('claude', '🤖', 'Pairing with Claude', 'teal', 60, { subtitle: 'Reviewing the robot' }),
+      p('deleting', '🧹', 'Deleting code', 'green', 30, { subtitle: 'Best kind of PR' }),
+      p('naming', '🏷️', 'Naming things', 'pink', 15, { subtitle: 'The hard problem' }),
+      p('repro', '🔬', 'Reproducing a bug', 'orange', 45, { subtitle: 'Works on my machine' }),
+      p('hotfix', '🧯', 'Hotfixing prod', 'red', 60, { subtitle: 'Do not disturb', dnd: true, keepAlive: true }),
+      p('estimating', '🔮', 'Estimating tickets', 'purple', 30, { subtitle: 'Guessing confidently' }),
+      p('git-blame', '🕵️', 'Reading git blame', 'gray', 15, { subtitle: 'It was me' }),
+      p('npm', '⏳', 'Waiting on npm install', 'gray', 10),
+      p('context', '🤹', 'Context switching', 'lime', 30, { subtitle: 'Six tabs deep' }),
+      p('zombie', '🧟', 'Reviving a dead branch', 'green', 45, { subtitle: 'Three months old' }),
+    ],
+  },
 ];
 
 export const PRESETS: Preset[] = PRESET_GROUPS.flatMap((g) => g.presets);

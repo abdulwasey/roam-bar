@@ -176,6 +176,17 @@ const CustomForm: React.FC<Props> = ({ busy, draft = {}, mode, groupOptions, onS
         </Group>
       ) : (
         <Group gap={6} grow>
+          {mode === 'status' && onSavePreset && (
+            <Button
+              size="sm"
+              variant="light"
+              leftSection={<IconDeviceFloppy size={15} />}
+              disabled={!valid}
+              onClick={() => valid && onSavePreset(values())}
+            >
+              Save preset
+            </Button>
+          )}
           <Button size="sm" leftSection={<IconCheck size={15} />} disabled={!valid} loading={busy} onClick={primary}>
             {mode === 'update' ? 'Update status' : 'Set status'}
           </Button>

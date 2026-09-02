@@ -164,8 +164,12 @@ const App: React.FC = () => {
   };
 
   const savePreset = (v: CustomValues) => {
-    if (editing?.kind !== 'preset') return;
-    updateStore(upsertPreset(store, { ...valuesToPreset(v, editing.preset.id), id: editing.preset.id }));
+    if (editing?.kind === 'preset') {
+      updateStore(upsertPreset(store, { ...valuesToPreset(v, editing.preset.id), id: editing.preset.id }));
+    } else if (!editing) {
+      updateStore(rememberCustom(store, valuesToPreset(v)));
+      notifications.show({ color: 'green', title: 'Preset saved', message: `${v.emoji} ${v.title}` });
+    }
     leaveCustom();
   };
 

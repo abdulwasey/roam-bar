@@ -19,14 +19,49 @@ npm run tauri:dev
 Click the menu bar icon → gear → paste a Roam **personal access token**
 (Roam → User Settings → Developer, with the `user activity` scope group).
 Saving resolves your identity via `token.info` and stores it in the Keychain.
-Alternatively copy `src-tauri/src/secrets.rs.example` to `secrets.rs` and set
-the token there to compile it in.
+
+For your own dev builds you can compile a token in instead of pasting it:
+
+```fish
+set -Ux ROAM_DEV_TOKEN rmp-…   # fish; persists across shells
+npm run tauri:dev
+```
+
+Never set `ROAM_DEV_TOKEN` when building something you plan to share.
 
 ## Build and install
 
 ```bash
 npm run install:app   # release .app → /Applications/Roam Bar.app, relaunched
 ```
+
+## Sharing a build
+
+```bash
+env -u ROAM_DEV_TOKEN npm run tauri:build
+open src-tauri/target/release/bundle/dmg/
+```
+
+That produces `Roam Bar_<version>_aarch64.dmg` with no token inside. Each
+person drags the app to Applications, launches it, opens Settings and pastes
+their own Roam personal access token. Tokens only ever live in that person's
+Keychain.
+
+**Gatekeeper.** The build is ad-hoc signed, not notarized, so on first launch
+macOS shows "cannot be opened because Apple cannot check it for malicious
+software". Recipients either right-click the app → Open, or run:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Roam Bar.app"
+```
+
+To remove that step you need a Developer ID certificate and notarization
+(Apple Developer Program). Tauri supports it via the `APPLE_SIGNING_IDENTITY`,
+`APPLE_ID`, `APPLE_PASSWORD` and `APPLE_TEAM_ID` env vars at build time; see
+https://tauri.app/distribute/sign/macos/.
+
+The app is Apple Silicon only as built. Add `--target universal-apple-darwin`
+to `tauri build` for an Intel + Apple Silicon universal binary.
 
 ## API
 

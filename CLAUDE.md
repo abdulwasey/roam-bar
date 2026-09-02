@@ -40,9 +40,11 @@ No test suite. `npm run build` is the frontend typecheck; `cargo clippy` the Rus
 - `heartbeat.rs` — managed state holding one background task that re-posts the
   active activity every `ttl - 60s` while "keep alive" is on. Stopped on clear,
   on quit, or when `get_activities` sees nothing live.
-- `secrets.rs` — gitignored compile-time default (`ROAM_TOKEN`); copy `secrets.rs.example` to create it. A Keychain token overrides it.
 - `config.rs` — Keychain keys: `roam_token`, `roam_user_id`, `roam_user_name`,
   `roam_user_email`, `roam_user_image`. Token only overwritten when non-empty.
+  With no Keychain token, `load()` falls back to the compile-time
+  `ROAM_DEV_TOKEN` env var (`option_env!`, dev convenience only). Release builds
+  for sharing must be made without it so no token ships in the binary.
 - `models.rs` — serde structs over IPC, `rename_all = "camelCase"`.
 
 ### Frontend (`src/`)
@@ -64,4 +66,5 @@ New Tauri plugin permissions go in `src-tauri/capabilities/default.json`.
 ## Conventions
 
 - No code comments.
-- Keep the token out of logs, notifications, and the webview.
+- Keep the token out of logs, notifications, the webview, and shared builds.
+- `app-icon.png` at the root is the icon source; regenerate the set with `npx tauri icon app-icon.png` and delete the `android/`/`ios/` dirs it creates.

@@ -38,7 +38,7 @@ pub fn set(key: &str, value: &str) -> Result<(), String> {
 
 pub fn load() -> Config {
     Config {
-        token: get(TOKEN).unwrap_or_else(|| crate::secrets::ROAM_TOKEN.to_string()),
+        token: get(TOKEN).unwrap_or_else(|| option_env!("ROAM_DEV_TOKEN").unwrap_or("").to_string()),
         user_id: get(USER_ID).unwrap_or_default(),
         user_name: get(USER_NAME).unwrap_or_default(),
         user_email: get(USER_EMAIL).unwrap_or_default(),

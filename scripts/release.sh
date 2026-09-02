@@ -43,7 +43,14 @@ echo "✓ $DMG ($(du -h "$DMG" | cut -f1))"
 ASSET_TAR="Roam.Bar_${VERSION}_aarch64.app.tar.gz"
 cp "$TARBALL" "$stage/$ASSET_TAR"
 cp "$SIG" "$stage/$ASSET_TAR.sig"
-cat > "$stage/latest.json" <<JSON
+jq -n \
+  --arg version "$VERSION" \
+  --arg notes "Roam Bar $VERSION" \
+  --arg date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  --arg sig "$(cat "$SIG")" \
+  --arg url "https://github.com/$REPO/releases/download/v$VERSION/$ASSET_TAR" \
+  '{version: $version, notes: $notes, pub_date: $date, platforms: {"darwin-aarch64": {signature: $sig, url: $url}}}' \
+  > "$stage/latest.json"
 {
   "version": "$VERSION",
   "notes": "Roam Bar $VERSION",

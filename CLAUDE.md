@@ -70,6 +70,16 @@ Rust fn in `roam.rs` → `#[tauri::command]` in `commands.rs` → register in
 `lib.rs` `generate_handler!` → wrapper in `lib/api.ts` → type in `lib/types.ts`.
 New Tauri plugin permissions go in `src-tauri/capabilities/default.json`.
 
+## Releases and updates
+
+`npm run release` (scripts/release.sh) builds token-free, signs the updater
+artifact with `~/.tauri/roam-bar.key`, makes the DMG via hdiutil, and uploads
+DMG + `.app.tar.gz` + `.sig` + `latest.json` to the GitHub release. The app
+uses `tauri-plugin-updater` against `releases/latest/download/latest.json`
+(pubkey in tauri.conf.json). Bump the version in package.json, tauri.conf.json
+and Cargo.toml together. Presets persist to `<app data dir>/presets.json` via
+`load_presets`/`save_presets`, mirrored in localStorage.
+
 ## Conventions
 
 - No code comments.

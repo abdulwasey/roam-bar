@@ -25,6 +25,11 @@ Then click the menu bar icon → gear → paste a Roam **personal access token**
 (Roam → User Settings → Developer, `user activity` scope group). It stays in
 your Keychain.
 
+The app checks GitHub Releases for updates on launch and every 6 hours, and
+shows a banner with an Update button; Settings has a Check button too. Updates
+are signed with the key in `~/.tauri/roam-bar.key` (keep that file safe; without
+it new releases cannot be signed). Your token, presets and edits survive updates.
+
 ## Develop
 
 ```bash
@@ -54,8 +59,10 @@ scripts/release.sh   # bump "version" in package.json, tauri.conf.json, Cargo.to
 ```
 
 Builds the app without a token, refuses to continue if one is compiled in,
-creates the DMG with `hdiutil` (no Finder volume appears), and publishes or
-updates the GitHub release for that version. Each
+signs the updater artifact with `~/.tauri/roam-bar.key`, creates the DMG with
+`hdiutil` (no Finder volume appears), and publishes the DMG, the signed
+`.app.tar.gz` + `.sig`, and `latest.json` to the GitHub release. Installed
+copies pick the new version up from `latest.json`. Each
 person drags the app to Applications, launches it, opens Settings and pastes
 their own Roam personal access token. Tokens only ever live in that person's
 Keychain.

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { ActionIcon, Avatar, Box, Button, Group, PasswordInput, Stack, Switch, Text } from '@mantine/core';
-import { IconArrowLeft, IconPlugConnected, IconRestore } from '@tabler/icons-react';
+import { IconArrowLeft, IconDownload, IconPlugConnected, IconRefresh, IconRestore } from '@tabler/icons-react';
+import { getVersion } from '@tauri-apps/api/app';
+import type { UpdateInfo } from '../lib/updater';
 import { notifications } from '@mantine/notifications';
 import { enable, disable, isEnabled } from '@tauri-apps/plugin-autostart';
 import { getConfigStatus, saveConfig } from '../lib/api';
@@ -12,9 +14,16 @@ interface Props {
   onSaved: () => void;
   hiddenCount: number;
   onRestorePresets: () => void;
+  update: UpdateInfo | null;
+  installing: boolean;
+  onCheckUpdate: () => Promise<UpdateInfo | null>;
+  onInstallUpdate: () => void;
 }
 
-const Settings: React.FC<Props> = ({ onBack, onSaved, hiddenCount, onRestorePresets }) => {
+const Settings: React.FC<Props> = ({ onBack, onSaved, hiddenCount, onRestorePresets, update, installing, onCheckUpdate, onInstallUpdate }) => {
+  const [version, setVersion] = useState('');
+  const [checking, setChecking] = useState(false);
+  const [checked, setChecked] = useState(false);
   const [token, setToken] = useState('');
   const [status, setStatus] = useState<ConfigStatus | null>(null);
   const [autostart, setAutostart] = useState(true);
@@ -22,6 +31,7 @@ const Settings: React.FC<Props> = ({ onBack, onSaved, hiddenCount, onRestorePres
 
   useEffect(() => {
     getConfigStatus().then(setStatus).catch(() => setStatus(null));
+    getVersion().then(setVersion).catch(() => undefined);
     isEnabled().then(setAutostart).catch(() => setAutostart(false));
   }, []);
 
@@ -103,6 +113,45 @@ const Settings: React.FC<Props> = ({ onBack, onSaved, hiddenCount, onRestorePres
           <Button size="compact-xs" variant="light" color="gray" leftSection={<IconRestore size={13} />} disabled={!hiddenCount} onClick={onRestorePresets}>
             Restore
           </Button>
+        </Group>
+      </Box>
+
+      <Box className="glass" p={12}>
+        <Group justify="space-between" wrap="nowrap">
+          <div>
+            <Text className="t1" size="xs" fw={600}>
+              {update ? `Update ${update.version} available` : `Roam Bar ${version}`}
+            </Text>
+            <Text className="t3" size="xs">
+              {update ? 'Installs and relaunches in a few seconds' : checked ? 'You are up to date' : 'Checks every 6 hours'}
+            </Text>
+          </div>
+          {update ? (
+            <Button size="compact-xs" leftSection={<IconDownload size={13} />} loading={installing} onClick={onInstallUpdate}>
+              Install
+            </Button>
+          ) : (
+            <Button
+              size="compact-xs"
+              variant="light"
+              color="gray"
+              leftSection={<IconRefresh size={13} />}
+              loading={checking}
+              onClick={async () => {
+                setChecking(true);
+                try {
+                  await onCheckUpdate();
+                  setChecked(true);
+                } catch (err) {
+                  notifications.show({ color: 'red', title: 'Update check failed', message: errorText(err) });
+                } finally {
+                  setChecking(false);
+                }
+              }}
+            >
+              Check
+            </Button>
+          )}
         </Group>
       </Box>
 

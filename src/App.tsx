@@ -6,7 +6,9 @@ import { listen } from '@tauri-apps/api/event';
 import { clearActivity, getActivities, getConfigStatus, hideWindow, quitApp, setActivity, setPinned } from './lib/api';
 import type { Activity, ConfigStatus, SetActivityInput } from './lib/types';
 import type { Preset } from './lib/presets';
-import { buildGroups, loadStore, rememberCustom, removePreset, saveStore, upsertPreset, type PresetStore } from './lib/presetStore';
+import { buildGroups, loadStore, loadStoreFromDisk, rememberCustom, removePreset, saveStore, upsertPreset, type PresetStore } from './lib/presetStore';
+import { checkForUpdate, installUpdate, type UpdateInfo } from './lib/updater';
+import UpdateBanner from './components/UpdateBanner';
 import { errorText } from './lib/utils';
 import CurrentActivity from './components/CurrentActivity';
 import PresetGrid from './components/PresetGrid';
@@ -14,6 +16,7 @@ import CustomForm, { type CustomDraft, type CustomValues } from './components/Cu
 import Settings from './components/Settings';
 
 const POLL_INTERVAL = 30 * 1000;
+const UPDATE_INTERVAL = 6 * 60 * 60 * 1000;
 
 type Editing = { kind: 'status' } | { kind: 'preset'; preset: Preset } | null;
 
@@ -30,6 +33,8 @@ const App: React.FC = () => {
   const [store, setStore] = useState<PresetStore>(() => loadStore());
   const [draft, setDraft] = useState<CustomDraft | null>(null);
   const [editing, setEditing] = useState<Editing>(null);
+  const [update, setUpdate] = useState<UpdateInfo | null>(null);
+  const [installing, setInstalling] = useState(false);
 
   const groups = useMemo(() => buildGroups(store), [store]);
 
@@ -80,6 +85,17 @@ const App: React.FC = () => {
       document.removeEventListener('focusin', sync);
       document.removeEventListener('focusout', sync);
       document.removeEventListener('keydown', onKey);
+    };
+  }, []);
+
+  useEffect(() => {
+    loadStoreFromDisk().then(setStore).catch(() => undefined);
+    const check = () => checkForUpdate().then(setUpdate).catch(() => undefined);
+    const t = window.setTimeout(check, 5000);
+    const id = window.setInterval(check, UPDATE_INTERVAL);
+    return () => {
+      window.clearTimeout(t);
+      window.clearInterval(id);
     };
   }, []);
 
@@ -166,6 +182,17 @@ const App: React.FC = () => {
     setTab('custom');
   };
 
+  const install = async () => {
+    if (!update) return;
+    setInstalling(true);
+    try {
+      await installUpdate(update);
+    } catch (err) {
+      notifications.show({ color: 'red', title: 'Update failed', message: errorText(err) });
+      setInstalling(false);
+    }
+  };
+
   const clear = async (externalId: string) => {
     setClearing(externalId);
     try {
@@ -190,6 +217,14 @@ const App: React.FC = () => {
             }}
             hiddenCount={store.hidden.length + Object.keys(store.overrides).length}
             onRestorePresets={() => updateStore({ ...store, hidden: [], overrides: {} })}
+            update={update}
+            installing={installing}
+            onCheckUpdate={async () => {
+              const u = await checkForUpdate();
+              setUpdate(u);
+              return u;
+            }}
+            onInstallUpdate={install}
           />
         </Box>
       </Box>
@@ -230,6 +265,8 @@ const App: React.FC = () => {
           </Group>
         </Group>
       </Box>
+
+      {update && <UpdateBanner update={update} installing={installing} onInstall={install} onDismiss={() => setUpdate(null)} />}
 
       {config && !config.configured ? (
         <Stack gap={8} align="center" py={32} px={16}>

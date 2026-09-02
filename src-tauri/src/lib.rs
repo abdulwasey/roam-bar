@@ -38,6 +38,8 @@ pub fn run() {
 
     let result = tauri::Builder::default()
         .plugin(tauri_plugin_positioner::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .manage(heartbeat::Heartbeat::default())
         .manage(activity::Source::default())
@@ -47,6 +49,8 @@ pub fn run() {
             commands::get_activities,
             commands::set_activity,
             commands::clear_activity,
+            commands::load_presets,
+            commands::save_presets,
             commands::set_pinned,
             commands::hide_window,
             commands::quit_app,

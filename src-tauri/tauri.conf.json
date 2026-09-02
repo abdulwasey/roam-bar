@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Roam Bar",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "identifier": "com.realbrokerage.roambar",
   "build": {
     "frontendDist": "../dist",
@@ -41,6 +41,15 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDFBNTcyOUYwMkQzRTU1MTgKUldRWVZUNHQ4Q2xYR3ErU2I2NXBOS3NDeC9kUUxKNHNTKyszZHliQzZ4dTNRNTRsaEFkcHNkVEcK",
+      "endpoints": [
+        "https://github.com/abdulwasey/roam-bar/releases/latest/download/latest.json"
+      ]
+    }
   }
 }

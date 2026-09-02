@@ -96,6 +96,17 @@ textarea {
   border-bottom: 0.5px solid var(--separator);
 }
 
+.update-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border-bottom: 0.5px solid var(--separator);
+}
+
 .sticky-top {
   padding: 10px 12px 8px;
   border-bottom: 0.5px solid var(--separator);

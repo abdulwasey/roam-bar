@@ -21,6 +21,14 @@ export function clearActivity(externalId: string): Promise<void> {
   return invoke<void>('clear_activity', { externalId });
 }
 
+export function loadPresets(): Promise<string | null> {
+  return invoke<string | null>('load_presets');
+}
+
+export function savePresets(json: string): Promise<void> {
+  return invoke<void>('save_presets', { json });
+}
+
 export function setPinned(pinned: boolean): Promise<void> {
   return invoke<void>('set_pinned', { pinned });
 }

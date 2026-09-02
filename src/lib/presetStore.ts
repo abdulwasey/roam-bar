@@ -1,4 +1,5 @@
 import { PRESET_GROUPS, type Preset, type PresetGroup } from './presets';
+import { loadPresets, savePresets } from './api';
 
 export interface PresetStore {
   hidden: string[];
@@ -11,10 +12,9 @@ export const CUSTOM_GROUP = 'Yours';
 
 export const emptyStore = (): PresetStore => ({ hidden: [], overrides: {}, custom: [] });
 
-export function loadStore(): PresetStore {
+function parseStore(raw: string | null): PresetStore | null {
+  if (!raw) return null;
   try {
-    const raw = window.localStorage.getItem(KEY);
-    if (!raw) return emptyStore();
     const parsed = JSON.parse(raw) as Partial<PresetStore>;
     return {
       hidden: Array.isArray(parsed.hidden) ? parsed.hidden : [],
@@ -22,13 +22,35 @@ export function loadStore(): PresetStore {
       custom: Array.isArray(parsed.custom) ? parsed.custom : [],
     };
   } catch {
-    return emptyStore();
+    return null;
   }
 }
 
-export function saveStore(store: PresetStore): void {
+function readLocal(): PresetStore | null {
   try {
-    window.localStorage.setItem(KEY, JSON.stringify(store));
+    return parseStore(window.localStorage.getItem(KEY));
+  } catch {
+    return null;
+  }
+}
+
+export function loadStore(): PresetStore {
+  return readLocal() ?? emptyStore();
+}
+
+export async function loadStoreFromDisk(): Promise<PresetStore> {
+  const fromDisk = parseStore(await loadPresets().catch(() => null));
+  if (fromDisk) return fromDisk;
+  const local = readLocal();
+  if (local) await savePresets(JSON.stringify(local)).catch(() => undefined);
+  return local ?? emptyStore();
+}
+
+export function saveStore(store: PresetStore): void {
+  const json = JSON.stringify(store);
+  savePresets(json).catch(() => undefined);
+  try {
+    window.localStorage.setItem(KEY, json);
   } catch {
     return;
   }

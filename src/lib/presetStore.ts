@@ -104,5 +104,5 @@ export function rememberCustom(store: PresetStore, preset: Omit<Preset, 'id'>): 
   const same = store.custom.find((p) => p.emoji === preset.emoji && p.title === preset.title);
   const entry: Preset = { ...preset, id: same?.id ?? `custom:${Date.now()}` };
   const rest = store.custom.filter((p) => p.id !== entry.id);
-  return { ...store, custom: [entry, ...rest].slice(0, 30) };
+  return { ...store, custom: [entry, ...rest] };
 }

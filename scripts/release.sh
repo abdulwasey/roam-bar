@@ -17,7 +17,7 @@ ASSET_TAR="Roam.Bar_${VERSION}_aarch64.app.tar.gz"
 
 [ -f "$KEY" ] || { echo "Signing key not found at $KEY (generate: npx tauri signer generate -w $KEY)" >&2; exit 1; }
 
-echo "▶ Building $APP $VERSION (app bundle, signed updater artifacts, no token)…"
+echo "▶ Building ${APP} ${VERSION} (app bundle, signed updater artifacts, no token)…"
 env -u ROAM_DEV_TOKEN TAURI_SIGNING_PRIVATE_KEY="$(cat "$KEY")" TAURI_SIGNING_PRIVATE_KEY_PASSWORD="" \
   npm run tauri -- build --bundles app
 
@@ -58,7 +58,7 @@ if gh release view "v$VERSION" >/dev/null 2>&1; then
   echo "▶ Release v$VERSION exists, uploading assets…"
   gh release upload "v$VERSION" "$DMG" "$assets/$ASSET_TAR" "$assets/$ASSET_TAR.sig" "$assets/latest.json" --clobber
 else
-  echo "▶ Creating release v$VERSION…"
+  echo "▶ Creating release v${VERSION}…"
   gh release create "v$VERSION" "$DMG" "$assets/$ASSET_TAR" "$assets/$ASSET_TAR.sig" "$assets/latest.json" \
     --title "$APP $VERSION" \
     --notes "Install: \`curl -fsSL https://raw.githubusercontent.com/$REPO/main/scripts/install-from-release.sh | bash\`. Existing installs update themselves."

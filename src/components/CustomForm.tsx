@@ -4,9 +4,18 @@ import { IconCheck } from '@tabler/icons-react';
 import { ROAM_COLORS, type RoamColor, type SetActivityInput } from '../lib/types';
 import EmojiPicker from './EmojiPicker';
 
+export interface CustomDraft {
+  emoji?: string;
+  title?: string;
+  subtitle?: string;
+  color?: RoamColor;
+  minutes?: number | null;
+  dnd?: boolean;
+}
+
 interface Props {
   busy: boolean;
-  initialTitle?: string;
+  draft?: CustomDraft;
   onSubmit: (input: SetActivityInput) => void;
 }
 
@@ -18,13 +27,13 @@ const DURATIONS: { label: string; minutes: number | null }[] = [
   { label: 'Until cleared', minutes: null },
 ];
 
-const CustomForm: React.FC<Props> = ({ busy, initialTitle = '', onSubmit }) => {
-  const [emoji, setEmoji] = useState('💬');
-  const [title, setTitle] = useState(initialTitle);
-  const [subtitle, setSubtitle] = useState('');
-  const [color, setColor] = useState<RoamColor>('blue');
-  const [minutes, setMinutes] = useState<number | null>(30);
-  const [dnd, setDnd] = useState(false);
+const CustomForm: React.FC<Props> = ({ busy, draft = {}, onSubmit }) => {
+  const [emoji, setEmoji] = useState(draft.emoji ?? '💬');
+  const [title, setTitle] = useState(draft.title ?? '');
+  const [subtitle, setSubtitle] = useState(draft.subtitle ?? '');
+  const [color, setColor] = useState<RoamColor>(draft.color ?? 'blue');
+  const [minutes, setMinutes] = useState<number | null>(draft.minutes === undefined ? 30 : draft.minutes);
+  const [dnd, setDnd] = useState(draft.dnd ?? false);
 
   const valid = title.trim().length > 0;
 
@@ -112,7 +121,7 @@ const CustomForm: React.FC<Props> = ({ busy, initialTitle = '', onSubmit }) => {
       />
 
       <Button size="sm" leftSection={<IconCheck size={15} />} disabled={!valid} loading={busy} onClick={submit}>
-        Set status
+        {draft.title && draft.emoji ? 'Update status' : 'Set status'}
       </Button>
     </Stack>
   );

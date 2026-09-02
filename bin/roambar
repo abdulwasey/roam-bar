@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# roambar — talk to the Roam Bar menu bar app's local API (127.0.0.1:47831).
+#   roambar set <emoji> <title> [subtitle] [--color c] [--minutes n] [--dnd] [--keep-alive] [--source s]
+#   roambar touch [--minutes n] [--if-source s]
+#   roambar clear [--if-source s]
+#   roambar status
+set -euo pipefail
+API="http://127.0.0.1:47831"
+
+json_str() { python3 -c 'import json,sys; print(json.dumps(sys.argv[1]))' "$1"; }
+
+cmd="${1:-status}"; shift || true
+case "$cmd" in
+  set)
+    emoji="${1:?emoji required}"; title="${2:?title required}"; shift 2
+    subtitle=""; color=""; minutes=30; dnd=false; keep=false; source="cli"
+    if [ $# -gt 0 ] && [[ "$1" != --* ]]; then subtitle="$1"; shift; fi
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --color) color="$2"; shift 2 ;;
+        --minutes) minutes="$2"; shift 2 ;;
+        --dnd) dnd=true; shift ;;
+        --keep-alive) keep=true; shift ;;
+        --source) source="$2"; shift 2 ;;
+        *) echo "unknown flag $1" >&2; exit 2 ;;
+      esac
+    done
+    body="{\"emoji\":$(json_str "$emoji"),\"title\":$(json_str "$title"),\"subtitle\":$(json_str "$subtitle"),\"color\":$(json_str "$color"),\"minutes\":$minutes,\"dnd\":$dnd,\"keepAlive\":$keep,\"source\":$(json_str "$source")}"
+    curl -sf --max-time 10 -X POST "$API/activity" -H 'Content-Type: application/json' -d "$body"
+    ;;
+  touch)
+    minutes=15; ifs=""
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --minutes) minutes="$2"; shift 2 ;;
+        --if-source) ifs="$2"; shift 2 ;;
+        *) echo "unknown flag $1" >&2; exit 2 ;;
+      esac
+    done
+    curl -sf --max-time 10 -X POST "$API/touch" -H 'Content-Type: application/json' -d "{\"minutes\":$minutes,\"ifSource\":$(json_str "$ifs")}"
+    ;;
+  clear)
+    ifs=""
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --if-source) ifs="$2"; shift 2 ;;
+        *) echo "unknown flag $1" >&2; exit 2 ;;
+      esac
+    done
+    curl -sf --max-time 10 -X POST "$API/clear" -H 'Content-Type: application/json' -d "{\"ifSource\":$(json_str "$ifs")}"
+    ;;
+  status)
+    curl -sf --max-time 10 "$API/activity"
+    ;;
+  *)
+    echo "usage: roambar set <emoji> <title> [subtitle] [--color c] [--minutes n] [--dnd] [--keep-alive] [--source s] | touch [--minutes n] [--if-source s] | clear [--if-source s] | status" >&2
+    exit 2
+    ;;
+esac
+echo

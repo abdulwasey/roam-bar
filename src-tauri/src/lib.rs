@@ -1,8 +1,10 @@
+mod activity;
 mod commands;
 mod config;
 mod heartbeat;
 mod models;
 mod roam;
+mod server;
 
 use std::io::Write;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -38,6 +40,7 @@ pub fn run() {
         .plugin(tauri_plugin_positioner::init())
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .manage(heartbeat::Heartbeat::default())
+        .manage(activity::Source::default())
         .invoke_handler(tauri::generate_handler![
             commands::get_config_status,
             commands::save_config,
@@ -118,6 +121,8 @@ pub fn run() {
                     }
                 });
             }
+
+            server::start(app.handle().clone());
 
             dlog("setup: complete");
             Ok(())

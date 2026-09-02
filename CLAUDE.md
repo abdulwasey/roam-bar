@@ -30,8 +30,12 @@ No test suite. `npm run build` is the frontend typecheck; `cargo clippy` the Rus
   take focus), vibrancy, Accessory activation policy, first-run autostart,
   registers commands and the `Heartbeat` state.
   Lifecycle log at `/tmp/roam-bar-debug.log` (`dlog`).
-- `commands.rs` — the IPC surface. Each command loads config from Keychain,
-  calls `roam.rs`, and updates the tray title to the active emoji.
+- `commands.rs` — the IPC surface; thin wrappers over `activity.rs`.
+- `activity.rs` — the one place that sets/clears/touches the status: calls
+  `roam.rs`, drives `Heartbeat`, records the `Source` (`app`, `cli`, `claude`),
+  updates the tray title, and emits `activity-changed` so the UI refreshes.
+- `server.rs` — `tiny_http` listener on `127.0.0.1:47831` (`GET /activity`,
+  `POST /activity|/touch|/clear`). Used by `bin/roambar` and the Claude hooks.
 - `roam.rs` — HTTP client for `api.ro.am/v1`. One activity at a time under the
   fixed `externalId` `roambar:status`. `resolve_user` calls `token.info` for the
   token owner's id/name/email, then `user.info?id=` for the avatar `imageUrl`.
@@ -54,8 +58,11 @@ No test suite. `npm run build` is the frontend typecheck; `cargo clippy` the Rus
 - `lib/presets.ts` — the one-click preset catalog, grouped by `PRESET_GROUPS`. Edit here to add presets.
 - `App.tsx` — polls `get_activities` every 30 s and on window focus; pins the
   window while an input is focused; Escape blurs, then hides.
-- `components/` — `CurrentActivity` (with `SeatPreview`, a mock of the Roam seat),
-  `PresetGrid`, `CustomForm`, `EmojiPicker`, `Settings`.
+- `components/` — `CurrentActivity` (with `SeatPreview`, a mock of the Roam seat;
+  Edit prefills `CustomForm` via a `CustomDraft`), `PresetGrid`, `CustomForm`,
+  `EmojiPicker` (search over `lib/emoji-data.json`, generated from Unicode's
+  emoji-test.txt minus skin-tone variants), `Settings`.
+- `bin/roambar`, `hooks/` — CLI and Claude Code hook scripts over the local API.
 
 ### Adding a command
 
@@ -67,4 +74,5 @@ New Tauri plugin permissions go in `src-tauri/capabilities/default.json`.
 
 - No code comments.
 - Keep the token out of logs, notifications, the webview, and shared builds.
+- Roam renders only real Unicode emoji in the badge; shortcodes like `:smile:` are accepted by the API but show as text.
 - `app-icon.png` at the root is the icon source; regenerate the set with `npx tauri icon app-icon.png` and delete the `android/`/`ios/` dirs it creates.

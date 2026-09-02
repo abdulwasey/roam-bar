@@ -2,8 +2,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ActionIcon, Avatar, Box, Button, Group, SegmentedControl, Stack, Text, TextInput, Tooltip } from '@mantine/core';
 import { IconPower, IconSearch, IconSettings, IconX } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
+import { listen } from '@tauri-apps/api/event';
 import { clearActivity, getActivities, getConfigStatus, hideWindow, quitApp, setActivity, setPinned } from './lib/api';
 import type { Activity, ConfigStatus, SetActivityInput } from './lib/types';
+import type { CustomDraft } from './components/CustomForm';
 import type { Preset } from './lib/presets';
 import { errorText } from './lib/utils';
 import CurrentActivity from './components/CurrentActivity';
@@ -20,6 +22,8 @@ const App: React.FC = () => {
   const [config, setConfig] = useState<ConfigStatus | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [keepAlive, setKeepAlive] = useState(false);
+  const [source, setSource] = useState<string | null>(null);
+  const [draft, setDraft] = useState<CustomDraft | null>(null);
   const [busy, setBusy] = useState(false);
   const [clearing, setClearing] = useState<string | null>(null);
 
@@ -31,6 +35,7 @@ const App: React.FC = () => {
       const state = await getActivities();
       setActivities(state.activities);
       setKeepAlive(state.keepAlive);
+      setSource(state.source ?? null);
     } catch (err) {
       notifications.show({ color: 'red', title: 'Roam', message: errorText(err) });
     }
@@ -72,9 +77,11 @@ const App: React.FC = () => {
     const id = window.setInterval(refresh, POLL_INTERVAL);
     const onFocus = () => refresh();
     window.addEventListener('focus', onFocus);
+    const unlisten = listen('activity-changed', () => refresh());
     return () => {
       window.clearInterval(id);
       window.removeEventListener('focus', onFocus);
+      unlisten.then((f) => f()).catch(() => undefined);
     };
   }, [refresh]);
 
@@ -83,6 +90,7 @@ const App: React.FC = () => {
     try {
       await setActivity(input);
       await refresh();
+      setDraft(null);
       setTab('presets');
     } catch (err) {
       notifications.show({ color: 'red', title: 'Could not set status', message: errorText(err) });
@@ -109,6 +117,18 @@ const App: React.FC = () => {
     } finally {
       setClearing(null);
     }
+  };
+
+  const edit = (a: Activity) => {
+    setDraft({
+      emoji: a.display.emoji,
+      title: a.display.title,
+      subtitle: a.display.subtitle ?? '',
+      color: a.display.color ?? 'blue',
+      minutes: keepAlive ? null : Math.max(5, Math.min(60, Math.ceil((new Date(a.expiresAt).getTime() - Date.now()) / 60000))),
+      dnd: a.dnd,
+    });
+    setTab('custom');
   };
 
   if (view === 'settings') {
@@ -171,12 +191,15 @@ const App: React.FC = () => {
       ) : (
         <>
           <Box className="sticky-top">
-            <CurrentActivity config={config} activities={activities} keepAlive={keepAlive} clearing={clearing} onClear={clear} />
+            <CurrentActivity config={config} activities={activities} keepAlive={keepAlive} source={source} clearing={clearing} onClear={clear} onEdit={edit} />
             <Group gap={6} wrap="nowrap" mt={10}>
               <SegmentedControl
                 size="xs"
                 value={tab}
-                onChange={(v) => setTab(v as 'presets' | 'custom')}
+                onChange={(v) => {
+                  setTab(v as 'presets' | 'custom');
+                  if (v === 'presets') setDraft(null);
+                }}
                 data={[
                   { label: 'Presets', value: 'presets' },
                   { label: 'Custom', value: 'custom' },
@@ -212,7 +235,12 @@ const App: React.FC = () => {
             {tab === 'presets' ? (
               <PresetGrid busy={busy} filter={filter} active={activities[0]} onPick={pickPreset} />
             ) : (
-              <CustomForm busy={busy} initialTitle={filter.trim()} onSubmit={submit} />
+              <CustomForm
+                key={draft ? `${draft.emoji}|${draft.title}` : 'new'}
+                busy={busy}
+                draft={draft ?? { title: filter.trim() }}
+                onSubmit={submit}
+              />
             )}
           </Box>
         </>

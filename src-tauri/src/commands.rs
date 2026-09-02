@@ -1,8 +1,8 @@
+use crate::activity;
 use crate::config::{self, Config};
-use crate::heartbeat::Heartbeat;
 use crate::models::{Activity, ActivityState, AppConfigInput, ConfigStatus, RoamUser, SetActivityInput};
 use crate::roam;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Manager};
 
 async fn load_cfg() -> Result<Config, String> {
     let cfg = config::load();
@@ -12,13 +12,6 @@ async fn load_cfg() -> Result<Config, String> {
     let user = roam::resolve_user(&cfg).await?;
     config::save_identity(&user)?;
     Ok(config::load())
-}
-
-fn update_tray(app: &AppHandle, activities: &[Activity]) {
-    if let Some(tray) = app.tray_by_id("main-tray") {
-        let title = activities.first().map(|a| a.display.emoji.clone());
-        let _ = tray.set_title(title);
-    }
 }
 
 #[tauri::command]
@@ -43,53 +36,20 @@ pub async fn save_config(config: AppConfigInput) -> Result<RoamUser, String> {
 }
 
 #[tauri::command]
-pub async fn get_activities(
-    app: AppHandle,
-    heartbeat: State<'_, Heartbeat>,
-) -> Result<ActivityState, String> {
-    let cfg = load_cfg().await?;
-    let activities = roam::list_activities(&cfg).await?;
-    update_tray(&app, &activities);
-    if activities.is_empty() {
-        heartbeat.stop();
-    }
-    Ok(ActivityState {
-        activities,
-        keep_alive: heartbeat.is_running(),
-    })
+pub async fn get_activities(app: AppHandle) -> Result<ActivityState, String> {
+    load_cfg().await?;
+    activity::state(&app).await
 }
 
 #[tauri::command]
-pub async fn set_activity(
-    app: AppHandle,
-    heartbeat: State<'_, Heartbeat>,
-    input: SetActivityInput,
-) -> Result<Activity, String> {
-    let cfg = load_cfg().await?;
-    let activity = roam::set_activity(&cfg, &input.display, input.ttl_seconds, input.dnd).await?;
-    if input.keep_alive {
-        heartbeat.start(input.display.clone(), input.ttl_seconds, input.dnd);
-    } else {
-        heartbeat.stop();
-    }
-    update_tray(&app, std::slice::from_ref(&activity));
-    Ok(activity)
+pub async fn set_activity(app: AppHandle, input: SetActivityInput) -> Result<Activity, String> {
+    load_cfg().await?;
+    activity::set(&app, input, Some("app".into())).await
 }
 
 #[tauri::command]
-pub async fn clear_activity(
-    app: AppHandle,
-    heartbeat: State<'_, Heartbeat>,
-    external_id: String,
-) -> Result<(), String> {
-    let cfg = config::load();
-    roam::clear_activity(&cfg, &external_id).await?;
-    if external_id == roam::EXTERNAL_ID {
-        heartbeat.stop();
-    }
-    let remaining = roam::list_activities(&cfg).await.unwrap_or_default();
-    update_tray(&app, &remaining);
-    Ok(())
+pub async fn clear_activity(app: AppHandle, external_id: String) -> Result<(), String> {
+    activity::clear(&app, &external_id).await
 }
 
 #[tauri::command]

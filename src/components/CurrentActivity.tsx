@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ActionIcon, Badge, Group, Stack, Text, Tooltip } from '@mantine/core';
-import { IconX } from '@tabler/icons-react';
+import { IconPencil, IconX } from '@tabler/icons-react';
 import { ROAM_STATUS_ID, type Activity, type ConfigStatus } from '../lib/types';
 import { formatRemaining } from '../lib/utils';
 import SeatPreview from './SeatPreview';
@@ -9,11 +9,13 @@ interface Props {
   config: ConfigStatus | null;
   activities: Activity[];
   keepAlive: boolean;
+  source: string | null;
   clearing: string | null;
   onClear: (externalId: string) => void;
+  onEdit: (activity: Activity) => void;
 }
 
-const CurrentActivity: React.FC<Props> = ({ config, activities, keepAlive, clearing, onClear }) => {
+const CurrentActivity: React.FC<Props> = ({ config, activities, keepAlive, source, clearing, onClear, onEdit }) => {
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -55,9 +57,17 @@ const CurrentActivity: React.FC<Props> = ({ config, activities, keepAlive, clear
                   <Text className="t3" size="xs" truncate>
                     {a.display.subtitle ? `${a.display.subtitle} · ` : ''}
                     {ours && keepAlive ? 'Until cleared' : formatRemaining(a.expiresAt, now)}
+                    {ours && source && source !== 'app' ? ` · via ${source}` : ''}
                     {!ours ? ' · from another app' : ''}
                   </Text>
                 </div>
+                {ours && (
+                  <Tooltip label="Edit" withArrow>
+                    <ActionIcon variant="subtle" color="gray" size="sm" aria-label={`Edit ${a.display.title}`} onClick={() => onEdit(a)}>
+                      <IconPencil size={14} />
+                    </ActionIcon>
+                  </Tooltip>
+                )}
                 <Tooltip label="Clear" withArrow>
                   <ActionIcon
                     variant="subtle"

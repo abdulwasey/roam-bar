@@ -63,6 +63,37 @@ https://tauri.app/distribute/sign/macos/.
 The app is Apple Silicon only as built. Add `--target universal-apple-darwin`
 to `tauri build` for an Intel + Apple Silicon universal binary.
 
+## Local API and CLI
+
+While the app runs it listens on `127.0.0.1:47831`:
+
+| Route | Body | Effect |
+| --- | --- | --- |
+| `GET /activity` | | live activities, `keepAlive`, and `source` of the app-owned one |
+| `POST /activity` | `{emoji,title,subtitle?,color?,minutes?,dnd?,keepAlive?,source?}` | set the status |
+| `POST /touch` | `{minutes?,ifSource?}` | extend the current status' TTL |
+| `POST /clear` | `{ifSource?}` | clear it (skipped if `ifSource` doesn't match) |
+
+`bin/roambar` wraps it. Put it on your PATH with
+`ln -s ~/Desktop/REAL/roam-bar/bin/roambar /opt/homebrew/bin/roambar`.
+
+```bash
+roambar set 🧑‍🔧 "Fixing E2E" "bolt · RV2-76279" --color teal --minutes 30
+roambar touch --minutes 15 --if-source claude
+roambar clear
+roambar status
+```
+
+## Claude Code integration
+
+`hooks/claude-prompt.sh` (UserPromptSubmit) and `hooks/claude-session-end.sh`
+(SessionEnd) are registered in `~/.claude/settings.json`. For sessions under
+`~/Desktop/REAL` they set a "🤖 Pairing with Claude · repo · branch" status,
+refresh it on every prompt, and clear it when the session ends. They only ever
+touch a status whose `source` is `claude`, so a preset you picked yourself is
+left alone. `~/Desktop/REAL/CLAUDE.md` tells Claude to replace the baseline with
+a specific title via `roambar set … --source claude` once it knows the task.
+
 ## API
 
 Roam External Activity API, `https://api.ro.am/v1`:

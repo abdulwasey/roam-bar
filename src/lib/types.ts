@@ -41,6 +41,7 @@ export interface SetActivityInput {
 export interface ActivityState {
   activities: Activity[];
   keepAlive: boolean;
+  source?: string | null;
 }
 
 export interface ConfigStatus {

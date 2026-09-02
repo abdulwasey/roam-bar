@@ -37,6 +37,8 @@ pub struct SetActivityInput {
 pub struct ActivityState {
     pub activities: Vec<Activity>,
     pub keep_alive: bool,
+    #[serde(default)]
+    pub source: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

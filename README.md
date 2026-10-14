@@ -1,5 +1,7 @@
 # Roam Bar
 
+![Roam Bar demo: clicking a preset in the menu bar popover sets your Roam status with a countdown, then switching to Lunch](docs/media/roam-bar.gif)
+
 A macOS **menu bar app** for setting your own Roam seat activity: one-click
 presets (deep work, on a call, lunch…) or a custom emoji + title + color +
 duration, with optional do-not-disturb and a keep-alive heartbeat that

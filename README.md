@@ -5,8 +5,7 @@ presets (deep work, on a call, lunch…) or a custom emoji + title + color +
 duration, with optional do-not-disturb and a keep-alive heartbeat that
 re-posts long sessions past Roam's 60-minute TTL cap.
 
-Built on the same skeleton as `~/Desktop/REAL/ci-bar`: Tauri v2 (Rust) backend, React 19 +
-Mantine 7 webview. The token never touches the webview; it lives in the macOS
+Built with Tauri v2 (Rust) backend and a React 19 + Mantine 7 webview. The token never touches the webview; it lives in the macOS
 Keychain under the service `com.realbrokerage.roambar`.
 
 ## Install (no build tools needed)
@@ -95,10 +94,10 @@ While the app runs it listens on `127.0.0.1:47831`:
 | `POST /clear` | `{ifSource?}` | clear it (skipped if `ifSource` doesn't match) |
 
 `bin/roambar` wraps it. Put it on your PATH with
-`ln -s ~/Desktop/CODE/roam-bar/bin/roambar /opt/homebrew/bin/roambar`.
+`ln -s "$PWD/bin/roambar" /opt/homebrew/bin/roambar` from the repo root.
 
 ```bash
-roambar set 🧑‍🔧 "Fixing E2E" "bolt · RV2-76279" --color teal --minutes 30
+roambar set 🧑‍🔧 "Fixing flaky tests" "api · PR #142" --color teal --minutes 30
 roambar touch --minutes 15 --if-source claude
 roambar clear
 roambar status
